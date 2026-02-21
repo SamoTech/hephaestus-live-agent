@@ -4,6 +4,7 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![React 18](https://img.shields.io/badge/react-18-blue.svg)](https://reactjs.org/)
 [![Gemini 2.5](https://img.shields.io/badge/gemini-2.5%20flash%20native%20audio-orange.svg)](https://ai.google.dev/)
+[![Release](https://img.shields.io/github/v/release/SamoTech/hephaestus-live-agent)](https://github.com/SamoTech/hephaestus-live-agent/releases)
 
 **Real-time multimodal AI agent powered by Google Gemini 2.5 Flash Native Audio that sees your workspace through the camera and responds with live voice.**
 
@@ -134,7 +135,15 @@ hephaestus-live-agent/
 ├── docs/
 │   ├── API.md
 │   ├── ARCHITECTURE.md
-│   └── DEPLOYMENT.md
+│   ├── DEPLOYMENT.md
+│   └── i18n/                  # Translations
+│       ├── README.ar.md       # العربية
+│       ├── README.zh.md       # 中文
+│       ├── README.es.md       # Español
+│       ├── README.fr.md       # Français
+│       ├── README.de.md       # Deutsch
+│       ├── README.ja.md       # 日本語
+│       └── README.ru.md       # Русский
 │
 ├── docker-compose.yml
 ├── CHANGELOG.md
@@ -238,9 +247,9 @@ docker compose up --build
 
 ---
 
-## 🌍 Available In
+## 🌍 Translations
 
-[English](#) · [العربية](docs/i18n/README.ar.md) · [Español](docs/i18n/README.es.md) · [中文](docs/i18n/README.zh.md) · [Français](docs/i18n/README.fr.md) · [日本語](docs/i18n/README.ja.md) · [Deutsch](docs/i18n/README.de.md) · [Русский](docs/i18n/README.ru.md)
+[العربية](docs/i18n/README.ar.md) · [中文](docs/i18n/README.zh.md) · [Español](docs/i18n/README.es.md) · [Français](docs/i18n/README.fr.md) · [Deutsch](docs/i18n/README.de.md) · [日本語](docs/i18n/README.ja.md) · [Русский](docs/i18n/README.ru.md)
 
 ---
 
