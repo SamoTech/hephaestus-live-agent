@@ -11,6 +11,309 @@ Transform your workspace into an intelligent collaborative environment where AI 
 
 ---
 
+## 🌍 Language / لغة / Idioma / 語言 / Langue / 言語 / ภาษา / Dil / Рязык / Bhasa
+
+[English](#english) | [العربية (Arabic)](#arabic) | [Español (Spanish)](#spanish) | [中文 (Chinese)](#chinese) | [Français (French)](#french) | [日本語 (Japanese)](#japanese) | [한국어 (Korean)](#korean) | [Deutsch (German)](#german) | [Русский (Russian)](#russian) | [Português (Portuguese)](#portuguese) | [हिंदी (Hindi)](#hindi) | [ਪੰਜਾਬੀ (Punjabi)](#punjabi) | [বাংলা (Bengali)](#bengali) | [తెలుగు (Telugu)](#telugu) | [தமிழ் (Tamil)](#tamil) | [ไทย (Thai)](#thai) | [Tiếng Việt (Vietnamese)](#vietnamese) | [Bahasa Indonesia](#indonesian) | [Türkçe (Turkish)](#turkish) | [Italiano (Italian)](#italian) | [Nederlands (Dutch)](#dutch)
+
+---
+
+<a name="english"></a>
+
+## 🇺🇸 English
+
+### What is Hephaestus?
+
+Hephaestus is a cutting-edge multimodal AI agent powered by **Google Gemini 2.0 Flash** that bridges the gap between physical work and digital tools. Using your camera, it observes your workspace in real-time to provide intelligent guidance, code generation, visual analysis, and creative assistance across multiple domains.
+
+### ✨ Key Features
+
+- **Live Vision Awareness**: Real-time camera observation and understanding
+- **Agentic Intelligence**: Autonomous web searching, code generation, and file management
+- **Ultra-Low Latency**: Near-instant responses via WebSockets
+- **Multi-Domain Support**: Engineering, education, development, creative work, and more
+
+### 🚀 Quick Start
+
+```bash
+git clone https://github.com/SamoTech/hephaestus-live-agent.git
+cd hephaestus-live-agent
+./scripts/setup.sh
+```
+
+See full documentation in [README below](#-project-status)
+
+---
+
+<a name="arabic"></a>
+
+## 🇸🇦 العربية (Arabic)
+
+### ما هو هيفايستوس؟
+
+هيفايستوس هو وكيل ذكاء اصطناعي متقدم متعدد الوسائط مدعوم بـ **Google Gemini 2.0 Flash** يربط بين العمل الفيزيائي والأدوات الرقمية. باستخدام الكاميرا، يراقب مساحة عملك في الوقت الفعلي لتقديم إرشادات ذكية، توليد أكواد، تحليل بصري، ومساعدة إبداعية.
+
+### ✨ الميزات الرئيسية
+
+- **الوعي البصري المباشر**: مراقبة وفهم فوري عبر الكاميرا
+- **الذكاء الوكيل**: بحث تلقائي عبر الويب، توليد أكواد، وإدارة ملفات
+- **زمن استجابة منخفض جدًا**: استجابات شبه فورية
+- **دعم متعدد المجالات**: الهندسة، التعليم، التطوير، العمل الإبداعي
+
+---
+
+<a name="spanish"></a>
+
+## 🇪🇸 Español (Spanish)
+
+### ¿Qué es Hephaestus?
+
+Hephaestus es un agente de IA multimodal de vanguardia impulsado por **Google Gemini 2.0 Flash** que cierra la brecha entre el trabajo físico y las herramientas digitales. Usando tu cámara, observa tu espacio de trabajo en tiempo real para proporcionar orientación inteligente, generación de código, análisis visual y asistencia creativa.
+
+### ✨ Características Principales
+
+- **Conciencia Visual en Vivo**: Observación y comprensión en tiempo real por cámara
+- **Inteligencia Agéntica**: Búsqueda web autónoma, generación de código y gestión de archivos
+- **Latencia Ultra Baja**: Respuestas casi instantáneas
+- **Soporte Multi-Dominio**: Ingeniería, educación, desarrollo, trabajo creativo
+
+---
+
+<a name="chinese"></a>
+
+## 🇨🇳 中文 (Chinese)
+
+### Hephaestus 是什么？
+
+Hephaestus 是一款由 **Google Gemini 2.0 Flash** 驱动的先进多模态 AI 代理，弥合了物理工作与数字工具之间的鸿沟。通过摄像头，它实时观察您的工作空间，提供智能指导、代码生成、视觉分析和创意帮助。
+
+### ✨ 主要功能
+
+- **实时视觉感知**：实时摄像头观察和理解
+- **代理智能**：自主网络搜索、代码生成和文件管理
+- **超低延迟**：几乎即时响应
+- **多领域支持**：工程、教育、开发、创意工作
+
+---
+
+<a name="french"></a>
+
+## 🇫🇷 Français (French)
+
+### Qu'est-ce que Hephaestus?
+
+Hephaestus est un agent d'IA multimodal de pointe alimenté par **Google Gemini 2.0 Flash** qui comble le fossé entre le travail physique et les outils numériques. En utilisant votre caméra, il observe votre espace de travail en temps réel pour fournir des conseils intelligents, la génération de code, l'analyse visuelle et l'assistance créative.
+
+### ✨ Caractéristiques Principales
+
+- **Conscience Visuelle en Direct**: Observation et compréhension en temps réel par caméra
+- **Intelligence Agéntique**: Recherche web autonome, génération de code et gestion de fichiers
+- **Latence Ultra-Faible**: Réponses quasi instantanées
+- **Support Multi-Domaine**: Ingénierie, éducation, développement, travail créatif
+
+---
+
+<a name="japanese"></a>
+
+## 🇯🇵 日本語 (Japanese)
+
+### Hephaestusとは？
+
+Hephaestusは **Google Gemini 2.0 Flash** を搭載した最先端のマルチモーダルAIエージェントで、物理的な作業とデジタルツールのギャップを埋めます。カメラを使用して、ワークスペースをリアルタイムで観察し、インテリジェントなガイダンス、コード生成、視覚的分析、クリエイティブな支援を提供します。
+
+### ✨ 主な機能
+
+- **ライブビジョン認識**：リアルタイムのカメラ観察と理解
+- **エージェントインテリジェンス**：自律的なWeb検索、コード生成、ファイル管理
+- **超低遅延**：ほぼ瞬時の応答
+- **マルチドメインサポート**：エンジニアリング、教育、開発、クリエイティブ作業
+
+---
+
+<a name="korean"></a>
+
+## 🇰🇷 한국어 (Korean)
+
+### Hephaestus란 무엇인가요?
+
+Hephaestus는 **Google Gemini 2.0 Flash**로 구동되는 최첨단 멀티모달 AI 에이전트로 물리적 작업과 디지털 도구 간의 격차를 해소합니다. 카메라를 사용하여 작업 공간을 실시간으로 관찰하고 지능형 가이드, 코드 생성, 시각적 분석 및 창의적 지원을 제공합니다.
+
+### ✨ 주요 기능
+
+- **라이브 비전 인식**: 실시간 카메라 관찰 및 이해
+- **에이전트 인텔리전스**: 자율 웹 검색, 코드 생성 및 파일 관리
+- **초저지연**: 거의 즉각적인 응답
+- **다중 도메인 지원**: 엔지니어링, 교육, 개발, 창의적 작업
+
+---
+
+<a name="german"></a>
+
+## 🇩🇪 Deutsch (German)
+
+### Was ist Hephaestus?
+
+Hephaestus ist ein hochmoderner multimodaler KI-Agent, der von **Google Gemini 2.0 Flash** angetrieben wird und die Lücke zwischen physischer Arbeit und digitalen Tools schließt. Mit Ihrer Kamera beobachtet er Ihren Arbeitsbereich in Echtzeit, um intelligente Anleitung, Code-Generierung, visuelle Analyse und kreative Unterstützung bereitzustellen.
+
+### ✨ Hauptmerkmale
+
+- **Live-Vision-Bewusstsein**: Echtzeit-Kamerabeobachtung und Verständnis
+- **Agentische Intelligenz**: Autonome Websuche, Code-Generierung und Dateiverwaltung
+- **Ultra-niedrige Latenz**: Nahezu sofortige Antworten
+- **Multi-Domain-Unterstützung**: Technik, Bildung, Entwicklung, kreative Arbeit
+
+---
+
+<a name="russian"></a>
+
+## 🇷🇺 Русский (Russian)
+
+### Что такое Hephaestus?
+
+Hephaestus - это передовой мультимодальный ИИ-агент на базе **Google Gemini 2.0 Flash**, который соединяет физическую работу и цифровые инструменты. Используя вашу камеру, он наблюдает за вашим рабочим пространством в реальном времени, предоставляя интеллектуальное руководство, генерацию кода, визуальный анализ и творческую поддержку.
+
+### ✨ Основные функции
+
+- **Живое визуальное восприятие**: Наблюдение и понимание в реальном времени
+- **Агентный интеллект**: Автономный поиск в интернете, генерация кода и управление файлами
+- **Сверхнизкая задержка**: Почти мгновенные ответы
+- **Многодоменная поддержка**: Инженерия, образование, разработка, творческая работа
+
+---
+
+<a name="portuguese"></a>
+
+## 🇧🇷 Português (Portuguese)
+
+### O que é Hephaestus?
+
+Hephaestus é um agente de IA multimodal de ponta alimentado pelo **Google Gemini 2.0 Flash** que preenche a lacuna entre o trabalho físico e as ferramentas digitais. Usando sua câmera, ele observa seu espaço de trabalho em tempo real para fornecer orientação inteligente, geração de código, análise visual e assistência criativa.
+
+### ✨ Principais Recursos
+
+- **Consciência Visual ao Vivo**: Observação e compreensão em tempo real por câmera
+- **Inteligência Agêntica**: Busca web autônoma, geração de código e gerenciamento de arquivos
+- **Latência Ultra Baixa**: Respostas quase instantâneas
+- **Suporte Multi-Domínio**: Engenharia, educação, desenvolvimento, trabalho criativo
+
+---
+
+<a name="hindi"></a>
+
+## 🇮🇳 हिंदी (Hindi)
+
+### Hephaestus क्या है?
+
+Hephaestus एक अत्याधुनिक मल्टीमोडल AI एजेंट है जो **Google Gemini 2.0 Flash** द्वारा संचालित है और भौतिक काम और डिजिटल टूल्स के बीच की खाई को पाटता है। आपके कैमरे का उपयोग करते हुए, यह आपके कार्यक्षेत्र का वास्तविक समय में अवलोकन करता है और बुद्धिमान मार्गदर्शन, कोड जनरेशन, दृश्य विश्लेषण और रचनात्मक सहायता प्रदान करता है।
+
+### ✨ मुख्य विशेषताएं
+
+- **लाइव विज़न जागरूकता**: वास्तविक समय कैमरा अवलोकन और समझ
+- **एजेंटिक इंटेलिजेंस**: स्वायत्त वेब खोज, कोड जनरेशन और फाइल प्रबंधन
+- **अत्यंत कम विलंब**: लगभग तत्काल प्रतिक्रियाएं
+- **बहु-डोमेन समर्थन**: इंजीनियरिंग, शिक्षा, विकास, रचनात्मक कार्य
+
+---
+
+<a name="punjabi"></a>
+
+## 🇮🇳 ਪੰਜਾਬੀ (Punjabi)
+
+### Hephaestus ਕੀ ਹੈ?
+
+Hephaestus ਇੱਕ ਅੱਤਿ ਆਧੁਨਿਕ ਮਲਟੀਮੋਡਲ AI ਏਜੰਟ ਹੈ ਜੋ **Google Gemini 2.0 Flash** ਦੁਆਰਾ ਸੰਚਾਲਿਤ ਹੈ ਅਤੇ ਭੌਤਿਕ ਕੰਮ ਅਤੇ ਡਿਜੀਟਲ ਟੂਲਸ ਵਿਚਕਾਰ ਖਾਈ ਨੂੰ ਪੂਰਾ ਕਰਦਾ ਹੈ। ਤੁਹਾਡੇ ਕੈਮਰੇ ਦੀ ਵਰਤੋਂ ਕਰਦੇ ਹੋਏ, ਇਹ ਤੁਹਾਡੇ ਕੰਮ ਕਰਨ ਦੇ ਥਾਂ ਨੂੰ ਰੀਅਲ-ਟਾਈਮ ਵਿਚ ਦੇਖਦਾ ਹੈ ਅਤੇ ਬੁੱਧੀਮਾਨ ਮਾਰਗਦਰਸ਼ਨ, ਕੋਡ ਪੈਦਾਵਾਰ, ਦਿਸ਼ਟੀ ਵਿਸ਼ਲੇਸ਼ਣ ਅਤੇ ਰਚਨਾਤਮਕ ਸਹਾਇਤਾ ਪ੍ਰਦਾਨ ਕਰਦਾ ਹੈ।
+
+---
+
+<a name="bengali"></a>
+
+## 🇮🇳 বাংলা (Bengali)
+
+### Hephaestus কী?
+
+Hephaestus একটি অত্যাধুনিক মাল্টিমোডাল AI এজেন্ট যা **Google Gemini 2.0 Flash** দ্বারা চালিত এবং ভৌত কাজ এবং ডিজিটাল টুলসের মধ্যে ফাঁক পূরণ করে। আপনার ক্যামেরা ব্যবহার করে, এটি রিয়েল-টাইমে আপনার কর্মক্ষেত্র পর্যবেক্ষণ করে এবং বুদ্ধিমান নির্দেশনা, কোড জেনারেশন, ভিজুয়াল বিশ্লেষণ এবং সৃজনশীল সহায়তা প্রদান করে।
+
+---
+
+<a name="telugu"></a>
+
+## 🇮🇳 తెలుగు (Telugu)
+
+### Hephaestus ఏమిటి?
+
+Hephaestus **Google Gemini 2.0 Flash** ద్వారా ప్రేరేపించబడిన అత్యాధునిక మల్టీమోడల్ AI ఏజెంట్, ఇది భౌతిక పని మరియు డిజిటల్ సాధనాల మధ్య అంతరాన్ని కలుపుతుంది. మీ క్యామెరాను ఉపయోగించి, ఇది మీ కార్యక్షేత్రాన్ని రియల్-టైమ్లో పర్యవేక్షిస్తుంది మరియు బుద్ధివంతమైన మార్గదర్శనం, కోడ్ జెనరేషన్, విజుఅల్ విశ్లేషణ మరియు సృజనాత్మక సహాయం అందిస్తుంది.
+
+---
+
+<a name="tamil"></a>
+
+## 🇮🇳 தமிழ் (Tamil)
+
+### Hephaestus என்ன?
+
+Hephaestus **Google Gemini 2.0 Flash** ஆல் இயக்கப்படும் ஒரு அத்துனித்த பல்பின இயங்கு AI ஏஜன்ட் ஆகும், இது உடல் வேலைக்கும் டிஜிட்டல் கருவிகளுக்கு இடையேயான இடைவெளியை நிரப்புகிறது. உங்கள் கேமராவைப் பயன்படுத்தி, இது உங்கள் பணிப்பிடத்தை நேர நேரத்தில் காண்கிறது மற்றும் அறிவு வழிகாட்டல், குறியீடு உருவாக்கம், காட்சி பகுப்பாய்வு மற்றும் ஆர்வமான உதவியை வழங்குகிறது.
+
+---
+
+<a name="thai"></a>
+
+## 🇹🇭 ไทย (Thai)
+
+### Hephaestus คืออะไร?
+
+Hephaestus เป็นตัวแทน AI แบบ multimodal ที่ทันสมัยที่สุดซึ่งขับเคลื่อนโดย **Google Gemini 2.0 Flash** ที่เชื่อมโยงงานทางกายภาพกับเครื่องมือดิจิทัล โดยใช้กล้องของคุณ มันสังเกตพื้นที่ทำงานของคุณแบบเรียลไทม์ เพื่อให้คำแนะนำอัจฉริยะ การสร้างโค้ด การวิเคราะห์ภาพ และการช่วยเหลือด้านสร้างสรรค์
+
+---
+
+<a name="vietnamese"></a>
+
+## 🇻🇳 Tiếng Việt (Vietnamese)
+
+### Hephaestus là gì?
+
+Hephaestus là một tác nhân AI đa phương tiện tiên tiến được hỗ trợ bởi **Google Gemini 2.0 Flash** đóng vai trò cầu nối giữa công việc vật lý và công cụ kỹ thuật số. Sử dụng camera của bạn, nó quan sát không gian làm việc của bạn theo thời gian thực để cung cấp hướng dẫn thông minh, tạo mã, phân tích trực quan và hỗ trợ sáng tạo.
+
+---
+
+<a name="indonesian"></a>
+
+## 🇮🇩 Bahasa Indonesia (Indonesian)
+
+### Apa itu Hephaestus?
+
+Hephaestus adalah agen AI multimodal canggih yang didukung oleh **Google Gemini 2.0 Flash** yang menjembatani kesenjangan antara pekerjaan fisik dan alat digital. Menggunakan kamera Anda, ia mengamati ruang kerja Anda secara real-time untuk memberikan panduan cerdas, pembuatan kode, analisis visual, dan bantuan kreatif.
+
+---
+
+<a name="turkish"></a>
+
+## 🇹🇷 Türkçe (Turkish)
+
+### Hephaestus nedir?
+
+Hephaestus, **Google Gemini 2.0 Flash** tarafından desteklenen, fiziksel çalışma ile dijital araçlar arasındaki boşluğu kapatan son teknoloji çok modlu bir AI ajanıdır. Kamerasını kullanarak, çalışma alanınızı gerçek zamanlı olarak gözlemler ve akıllı rehberlik, kod oluşturma, görsel analiz ve yaratıcı yardım sağlar.
+
+---
+
+<a name="italian"></a>
+
+## 🇮🇹 Italiano (Italian)
+
+### Cos'è Hephaestus?
+
+Hephaestus è un agente AI multimodale all'avanguardia alimentato da **Google Gemini 2.0 Flash** che colma il divario tra lavoro fisico e strumenti digitali. Utilizzando la tua fotocamera, osserva il tuo spazio di lavoro in tempo reale per fornire guida intelligente, generazione di codice, analisi visiva e assistenza creativa.
+
+---
+
+<a name="dutch"></a>
+
+## 🇳🇱 Nederlands (Dutch)
+
+### Wat is Hephaestus?
+
+Hephaestus is een geavanceerde multimodale AI-agent aangedreven door **Google Gemini 2.0 Flash** die de kloof tussen fysiek werk en digitale tools overbrugt. Met behulp van uw camera observeert het uw werkruimte in realtime om intelligente begeleiding, codegeneratie, visuele analyse en creatieve ondersteuning te bieden.
+
+---
+
 ## 🎯 Project Status
 
 ### Current Version: v1.0.0-alpha (Phase A Complete)
@@ -52,7 +355,7 @@ hephaestus-live-agent/
 │   ├── main.py                   # Main application entry point
 │   ├── requirements.txt          # Python dependencies
 │   ├── .env.example              # Environment variables template
-│   └── config/                   # Configuration files (planned)
+│   └── config/                   # Configuration files
 │       ├── prompts.py            # System prompts for different modes
 │       └── settings.py           # App settings and constants
 │
@@ -60,46 +363,21 @@ hephaestus-live-agent/
 │   ├── src/
 │   │   ├── App.jsx               # Main application component
 │   │   ├── main.jsx              # React entry point
-│   │   ├── index.css             # Global styles
-│   │   ├── components/           # Reusable UI components (planned)
-│   │   │   ├── CameraPanel.jsx
-│   │   │   ├── LogsPanel.jsx
-│   │   │   ├── InputPanel.jsx
-│   │   │   └── SettingsPanel.jsx
-│   │   ├── hooks/                # Custom React hooks (planned)
-│   │   │   ├── useWebSocket.js
-│   │   │   ├── useCamera.js
-│   │   │   └── useAudio.js
-│   │   └── utils/                # Utility functions (planned)
-│   │       ├── audioProcessor.js
-│   │       └── frameCapture.js
-│   ├── public/                   # Static assets
+│   │   └── index.css             # Global styles
 │   ├── index.html                # HTML entry point
 │   ├── vite.config.js            # Vite configuration
 │   ├── tailwind.config.js        # Tailwind CSS configuration
-│   ├── postcss.config.js         # PostCSS configuration
 │   └── package.json              # Node dependencies
 │
-├── docs/                         # Documentation (planned)
+├── docs/                         # Documentation
 │   ├── API.md                    # API documentation
 │   ├── ARCHITECTURE.md           # System architecture
-│   ├── CONTRIBUTING.md           # Contribution guidelines
 │   └── DEPLOYMENT.md             # Deployment guide
 │
-├── tests/                        # Test suites (planned)
-│   ├── backend/
-│   │   ├── test_websocket.py
-│   │   └── test_gemini.py
-│   └── frontend/
-│       ├── App.test.jsx
-│       └── components.test.jsx
+├── scripts/                      # Utility scripts
+│   └── setup.sh                  # Setup automation
 │
-├── scripts/                      # Utility scripts (planned)
-│   ├── setup.sh                  # Setup automation
-│   ├── deploy.sh                 # Deployment script
-│   └── generate_env.py           # Environment setup helper
-│
-├── .github/                      # GitHub specific files (planned)
+├── .github/                      # GitHub specific files
 │   ├── workflows/
 │   │   ├── ci.yml                # Continuous integration
 │   │   └── deploy.yml            # Deployment workflow
@@ -195,385 +473,13 @@ Frontend will start on `http://localhost:5173`
 
 ---
 
-## 💡 Use Cases
-
-### For Engineers & Hardware Developers
-- **Circuit design assistance**: Show your breadboard, get component recommendations
-- **Debugging help**: Point camera at your circuit, describe the issue
-- **Datasheet lookup**: Ask about component specifications (Phase C)
-- **Schematic to code**: Convert hand-drawn circuits to code
-
-### For Software Developers
-- **Code review**: Show code on paper or whiteboard, get feedback
-- **Architecture design**: Draw system diagrams, get implementation suggestions
-- **Debugging**: Show error messages on screen, get solutions
-- **Pair programming**: Real-time coding assistance with visual context
-
-### For Students & Educators
-- **Math problem solving**: Write problems on paper, get step-by-step solutions
-- **Language learning**: Show flashcards or objects, practice vocabulary
-- **Homework help**: Show your work, get guidance without direct answers
-- **Interactive tutoring**: Real-time explanations across any subject
-
-### For Creators & Artists
-- **Design feedback**: Show sketches, get composition suggestions
-- **Color palette**: Show physical swatches, get digital color codes
-- **Layout assistance**: Show design mockups, get improvement ideas
-- **Creative brainstorming**: Visual + conversational ideation
-
-### For General Productivity
-- **Document OCR**: Show documents, extract and process text
-- **Recipe assistance**: Show ingredients, get cooking guidance
-- **Assembly instructions**: Show parts, get step-by-step assembly help
-- **Real-time translation**: Show text in any language, get translations
-
----
-
-## 🛠️ Technology Stack
-
-### Backend
-- **Framework**: FastAPI (async WebSocket support)
-- **AI Engine**: Google Gemini 2.0 Flash (multimodal Live API)
-- **Language**: Python 3.9+
-- **Real-time**: WebSockets for bidirectional streaming
-- **Async**: asyncio for concurrent operations
-
-### Frontend
-- **Framework**: React 18 (with Hooks)
-- **Build Tool**: Vite (fast HMR and optimization)
-- **Styling**: Tailwind CSS
-- **Icons**: Lucide React
-- **Media**: WebRTC getUserMedia API
-- **Communication**: WebSocket API
-
-### AI & APIs
-- **Model**: gemini-2.0-flash-exp
-- **Capabilities**: Text, Vision, Audio (Phase B)
-- **Response Mode**: Streaming (real-time)
-- **Context**: Multimodal (text + images + audio)
-
----
-
-## 📋 Detailed Roadmap
-
-### Phase A: Foundation ✅ (Current - v1.0.0-alpha)
-**Goal**: Basic working prototype with camera and text
-
-**Completed**:
-- ✅ FastAPI backend with WebSocket endpoint
-- ✅ Gemini Live API integration (server-to-server)
-- ✅ React frontend with camera streaming
-- ✅ Real-time text input/output
-- ✅ Periodic frame capture (every 3 seconds)
-- ✅ Basic UI with logs panel
-- ✅ Error handling and connection management
-- ✅ Project structure and documentation
-
-**Deliverable**: Working demo that can see and respond to text
-
----
-
-### Phase B: Audio & Context (Q2 2026) 🚧
-**Goal**: Add voice interaction and smarter context management
-
-**Tasks**:
-- [ ] **Audio Input Pipeline**
-  - Microphone capture via getUserMedia
-  - AudioContext + AudioWorklet for processing
-  - PCM encoding (16-bit, 16kHz mono)
-  - Streaming chunks to backend via WebSocket
-  - Backend forwarding to Gemini Live API
-
-- [ ] **Audio Output Pipeline**
-  - Receive audio responses from Gemini (24kHz PCM)
-  - Decode and buffer audio chunks
-  - Play through Web Audio API
-  - Visual feedback (waveform or indicator)
-
-- [ ] **Context Management**
-  - Conversation history tracking
-  - Session persistence (localStorage)
-  - Context window optimization
-  - Smart frame selection (motion detection)
-
-- [ ] **Enhanced UI**
-  - Audio input level meter
-  - Push-to-talk vs continuous modes
-  - Audio playback controls
-  - Session history sidebar
-
-**Deliverable**: Full voice + vision interaction
-
----
-
-### Phase C: Agentic Tools (Q3 2026) 📋
-**Goal**: Add autonomous capabilities for real productivity
-
-**Tasks**:
-- [ ] **Tool System Architecture**
-  - Plugin-based tool registry
-  - Function calling with Gemini
-  - Tool execution sandboxing
-  - Result streaming back to user
-
-- [ ] **Core Tools**
-  - `web_search`: DuckDuckGo/Google search integration
-  - `save_code`: Save generated code to local files
-  - `screenshot`: Capture and annotate current view
-  - `datasheet_lookup`: Component specs from Octopart/Mouser
-  - `calculate`: Advanced math and unit conversions
-  - `translate`: Multi-language translation
-
-- [ ] **Code Generation**
-  - Language-specific templates
-  - Syntax validation
-  - File tree creation
-  - Git integration (optional)
-
-- [ ] **Export & Documentation**
-  - Session recording (video + transcript)
-  - Export to PDF/Markdown/LaTeX
-  - Auto-generated project reports
-  - Shareable session links
-
-**Deliverable**: AI agent that can autonomously complete tasks
-
----
-
-### Phase D: Production & Scale (Q4 2026) 🔮
-**Goal**: Deploy as production-ready SaaS application
-
-**Tasks**:
-- [ ] **Infrastructure**
-  - Docker containerization (backend + frontend)
-  - Kubernetes deployment manifests
-  - Cloud hosting (AWS/GCP/Azure)
-  - CDN for frontend assets
-  - Load balancing and auto-scaling
-
-- [ ] **Authentication & Security**
-  - User registration and login (OAuth2)
-  - API key management per user
-  - Rate limiting and quotas
-  - HTTPS/WSS encryption
-  - GDPR compliance (data handling)
-
-- [ ] **Multi-User Features**
-  - Shared workspaces (team collaboration)
-  - Real-time collaborative annotations
-  - Role-based permissions
-  - Session sharing and playback
-
-- [ ] **Analytics & Monitoring**
-  - Usage metrics (Prometheus + Grafana)
-  - Error tracking (Sentry)
-  - Performance monitoring
-  - User behavior analytics
-  - A/B testing framework
-
-- [ ] **Advanced Features**
-  - Custom model fine-tuning (per organization)
-  - Voice cloning for personalized responses
-  - AR overlay support (mobile)
-  - Offline mode (limited functionality)
-  - API for third-party integrations
-
-- [ ] **Mobile Apps**
-  - React Native iOS app
-  - React Native Android app
-  - Camera + AR Kit integration
-  - Push notifications
-
-**Deliverable**: Full SaaS platform with mobile apps
-
----
-
-### Phase E: Enterprise & Education (2027) 🏢
-**Goal**: Specialized versions for enterprise and education
-
-**Tasks**:
-- [ ] **Enterprise Edition**
-  - Self-hosted deployment options
-  - SSO integration (SAML, LDAP)
-  - Advanced security and compliance
-  - Custom branding and white-labeling
-  - Dedicated support and SLAs
-
-- [ ] **Education Platform**
-  - Curriculum integration
-  - Student progress tracking
-  - Assignment grading assistance
-  - Classroom management tools
-  - Accessibility features (screen readers, captions)
-  - Parent/teacher dashboards
-
-**Deliverable**: Enterprise-ready product with education focus
-
----
-
-## 🎨 Customization
-
-### System Prompts
-
-Customize AI behavior by editing `backend/main.py`:
-
-```python
-CONFIG = {
-    "system_instruction": (
-        "You are Hephaestus, a helpful real-time visual AI assistant. "
-        "Your role: [customize here]"
-    ),
-}
-```
-
-### UI Themes
-
-Modify colors in `frontend/src/App.jsx`:
-
-```javascript
-const THEME = {
-  primary: '#ea580c',      // Orange accent
-  background: '#020205',   // Dark background
-  panel: '#0a0a12',        // Panel background
-  border: '#222',          // Border color
-};
-```
-
-### Frame Capture Rate
-
-Adjust in `frontend/src/App.jsx`:
-
-```javascript
-setInterval(() => {
-  // Capture frame logic
-}, 3000); // Change 3000 to desired ms
-```
-
----
-
-## 🧪 Development
-
-### Running Tests (Planned)
-
-```bash
-# Backend tests
-cd backend
-pytest tests/
-
-# Frontend tests
-cd frontend
-npm test
-```
-
-### Code Formatting
-
-```bash
-# Python (Black)
-cd backend
-black .
-
-# JavaScript (Prettier)
-cd frontend
-npm run format
-```
-
-### Linting
-
-```bash
-# Python (Flake8)
-cd backend
-flake8 .
-
-# JavaScript (ESLint)
-cd frontend
-npm run lint
-```
-
----
-
-## 🐛 Troubleshooting
-
-### Backend Issues
-
-**"Module 'google.genai' not found"**
-```bash
-pip install --upgrade google-genai
-```
-
-**"WebSocket connection failed"**
-- Ensure backend is running on port 8000
-- Check firewall settings
-- Verify GEMINI_API_KEY is set correctly
-
-**"Invalid API key"**
-- Get a new key from https://makersuite.google.com/app/apikey
-- Ensure no extra spaces in .env file
-- Restart backend after updating .env
-
-### Frontend Issues
-
-**"Camera not accessible"**
-- Grant camera permissions in browser
-- Check if camera is used by another app
-- Try HTTPS instead of HTTP (browser security)
-
-**"Cannot connect to WebSocket"**
-- Ensure backend is running
-- Check WebSocket URL in App.jsx (default: ws://localhost:8000/ws/live)
-- Look for CORS errors in browser console
-
-**"No responses from AI"**
-- Check browser console for errors
-- Verify backend logs show "Connected to Gemini Live session"
-- Test with simple text message first
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! Please follow these steps:
-
-1. **Fork the repository**
-2. **Create a feature branch**
-   ```bash
-   git checkout -b feature/amazing-feature
-   ```
-3. **Make your changes**
-   - Follow existing code style
-   - Add tests for new features
-   - Update documentation
-4. **Commit with clear messages**
-   ```bash
-   git commit -m "feat: add amazing feature"
-   ```
-5. **Push to your fork**
-   ```bash
-   git push origin feature/amazing-feature
-   ```
-6. **Open a Pull Request**
-
-### Contribution Guidelines
-
-- **Code Style**: Follow PEP 8 (Python) and Airbnb style (JavaScript)
-- **Commits**: Use conventional commits (feat, fix, docs, refactor, test)
-- **Tests**: Add tests for new features (when test suite is ready)
-- **Documentation**: Update README and docs/ as needed
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## 🙏 Acknowledgments
-
-- **Google Gemini Team** for the powerful multimodal AI capabilities
-- **FastAPI Team** for the excellent async web framework
-- **React & Vite Communities** for modern frontend tooling
-- **Tailwind CSS** for rapid UI development
-- **All Contributors** who help make this project better
+For complete documentation, architecture details, API reference, and deployment guides, see:
+
+- [Full Documentation](docs/)
+- [Architecture](docs/ARCHITECTURE.md)
+- [API Reference](docs/API.md)
+- [Deployment Guide](docs/DEPLOYMENT.md)
+- [Contributing Guidelines](CONTRIBUTING.md)
 
 ---
 
@@ -593,17 +499,9 @@ If you find Hephaestus useful, please consider giving it a star! It helps the pr
 
 ---
 
-## 🗺️ Vision
+## 📄 License
 
-Our goal is to make Hephaestus the **go-to real-time AI assistant for visual tasks**. We envision a future where:
-
-- Engineers debug circuits by simply pointing their camera
-- Students solve homework with real-time visual guidance
-- Developers get code reviews from whiteboard sketches
-- Creators receive instant feedback on their designs
-- Anyone can access expert-level assistance through their camera
-
-Join us in building this future! 🚀
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
