@@ -6,143 +6,161 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from google import genai
 
+from config.settings import (
+    GEMINI_API_KEY,
+    GEMINI_MODEL,
+    GEMINI_CONFIG,
+    HOST,
+    PORT,
+    LOG_LEVEL,
+    CORS_ORIGINS,
+    APP_NAME,
+    APP_VERSION,
+    APP_DESCRIPTION,
+)
+from config.prompts import get_prompt
+
 load_dotenv()
 
-app = FastAPI(title="Hephaestus Live Backend")
+app = FastAPI(
+    title=APP_NAME,
+    version=APP_VERSION,
+    description=APP_DESCRIPTION,
+)
 
-# CORS for local dev
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Tighten in production
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Initialize Gemini client with API key
-client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+# --- Gemini client: graceful handling if API key is missing ---
+client = None
+if GEMINI_API_KEY:
+    client = genai.Client(api_key=GEMINI_API_KEY)
+else:
+    print("[WARNING] GEMINI_API_KEY is not set. AI features will be disabled.")
 
-# Model configuration
-MODEL = "gemini-2.0-flash-exp"  # Supports text + vision
+# Build runtime config from settings + prompts
 CONFIG = {
-    "generation_config": {
-        "response_modalities": ["TEXT"],  # Phase A: text responses only
-    },
-    "system_instruction": (
-        "You are Hephaestus, a helpful real-time visual AI assistant. "
-        "You can see what the user shows you through their camera. "
-        "Provide clear, practical guidance for engineering, coding, education, "
-        "creative work, and general tasks. Be concise but thorough."
-    ),
+    **GEMINI_CONFIG,
+    "system_instruction": get_prompt("default"),
 }
 
 
 async def ws_to_gemini(ws: WebSocket, session):
     """
-    Read messages from browser WebSocket and forward to Gemini Live session.
-    Expected JSON formats:
-      { "type": "text", "text": "user message" }
-      { "type": "image", "data": "base64_data", "mime_type": "image/jpeg" }
+    Forward browser WebSocket messages to Gemini Live session.
+    Supported message types:
+      { "type": "text",  "text": "..." }
+      { "type": "image", "data": "<base64>", "mime_type": "image/jpeg" }
     """
     try:
         while True:
             msg = await ws.receive_text()
             data = json.loads(msg)
 
-            if data["type"] == "text":
+            if data.get("type") == "text":
                 await session.send(data["text"], end_of_turn=True)
-                
-            elif data["type"] == "image":
-                # Send image data to Gemini
-                await session.send(
-                    {
-                        "mime_type": data.get("mime_type", "image/jpeg"),
-                        "data": data["data"],
-                    }
-                )
-                
+
+            elif data.get("type") == "image":
+                await session.send({
+                    "mime_type": data.get("mime_type", "image/jpeg"),
+                    "data": data["data"],
+                })
+
     except WebSocketDisconnect:
         pass
     except Exception as e:
-        print(f"Error in ws_to_gemini: {e}")
+        print(f"[ws_to_gemini] Error: {e}")
 
 
 async def gemini_to_ws(ws: WebSocket, session):
     """
-    Read streaming responses from Gemini Live session and forward to browser.
+    Forward Gemini Live streaming responses back to browser.
     """
     try:
         async for response in session.receive():
-            # Extract text from response
-            if hasattr(response, 'text') and response.text:
+            # Direct text on response object
+            if hasattr(response, "text") and response.text:
                 await ws.send_text(json.dumps({
                     "type": "model_text",
                     "text": response.text,
                 }))
-            
-            # Handle server content if present
-            if hasattr(response, 'server_content') and response.server_content:
-                if hasattr(response.server_content, 'model_turn'):
-                    model_turn = response.server_content.model_turn
-                    if hasattr(model_turn, 'parts'):
-                        text_chunks = []
-                        for part in model_turn.parts:
-                            if hasattr(part, 'text') and part.text:
-                                text_chunks.append(part.text)
-                        
-                        if text_chunks:
-                            await ws.send_text(json.dumps({
-                                "type": "model_text",
-                                "text": "".join(text_chunks),
-                            }))
-                            
+
+            # Structured server_content chunks
+            if hasattr(response, "server_content") and response.server_content:
+                model_turn = getattr(response.server_content, "model_turn", None)
+                if model_turn:
+                    parts = getattr(model_turn, "parts", [])
+                    text_chunks = [
+                        part.text for part in parts
+                        if hasattr(part, "text") and part.text
+                    ]
+                    if text_chunks:
+                        await ws.send_text(json.dumps({
+                            "type": "model_text",
+                            "text": "".join(text_chunks),
+                        }))
+
     except WebSocketDisconnect:
         pass
     except Exception as e:
-        print(f"Error in gemini_to_ws: {e}")
+        print(f"[gemini_to_ws] Error: {e}")
 
 
 @app.get("/")
 async def root():
     return {
-        "service": "Hephaestus Live Backend",
+        "service": APP_NAME,
+        "version": APP_VERSION,
         "status": "running",
-        "version": "1.0.0",
-        "endpoints": {
-            "websocket": "/ws/live"
-        }
+        "gemini_configured": bool(client),
+        "endpoints": {"websocket": "/ws/live"},
+    }
+
+
+@app.get("/health")
+async def health():
+    return {
+        "status": "ok",
+        "gemini_ready": bool(client),
     }
 
 
 @app.websocket("/ws/live")
 async def live_endpoint(ws: WebSocket):
-    """
-    WebSocket endpoint that bridges browser to Gemini Live API.
-    """
     await ws.accept()
     print("[BACKEND] Client connected to /ws/live")
-    
+
+    # Reject early if API key is missing
+    if not client:
+        await ws.send_text(json.dumps({
+            "type": "error",
+            "text": "GEMINI_API_KEY is missing. Please configure it in the backend .env file.",
+        }))
+        await ws.close()
+        return
+
     try:
-        # Connect to Gemini Live API
         async with client.aio.live.connect(
-            model=MODEL,
+            model=GEMINI_MODEL,
             config=CONFIG,
         ) as live_session:
             print("[BACKEND] Connected to Gemini Live session")
-            
-            # Send welcome message
+
             await ws.send_text(json.dumps({
                 "type": "system",
-                "text": "Connected to Hephaestus AI. Camera feed active."
+                "text": "Connected to Hephaestus AI. Camera feed active.",
             }))
-            
-            # Create bidirectional streaming tasks
+
             send_task = asyncio.create_task(ws_to_gemini(ws, live_session))
             recv_task = asyncio.create_task(gemini_to_ws(ws, live_session))
-            
-            # Wait for either task to complete (disconnect)
+
             await asyncio.gather(send_task, recv_task, return_exceptions=True)
-            
+
     except WebSocketDisconnect:
         print("[BACKEND] Client disconnected")
     except Exception as e:
@@ -150,18 +168,24 @@ async def live_endpoint(ws: WebSocket):
         try:
             await ws.send_text(json.dumps({
                 "type": "error",
-                "text": f"Backend error: {str(e)}"
+                "text": f"Backend error: {str(e)}",
             }))
-        except:
+        except Exception:
             pass
     finally:
         try:
             await ws.close()
-        except:
+        except Exception:
             pass
         print("[BACKEND] WebSocket connection closed")
 
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(
+        "main:app",
+        host=HOST,
+        port=PORT,
+        log_level=LOG_LEVEL.lower(),
+        reload=False,
+    )
