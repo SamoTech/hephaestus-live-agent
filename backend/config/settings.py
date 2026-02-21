@@ -5,8 +5,8 @@ from typing import List
 
 # API Configuration
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-# gemini-2.0-flash-live-001 is the correct model for the Live (bidiGenerateContent) API
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash-live-001")
+# Live API (bidiGenerateContent) compatible model confirmed via /models/live
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "models/gemini-2.5-flash-native-audio-preview-12-2025")
 
 # Server Configuration
 HOST = os.getenv("HOST", "0.0.0.0")
@@ -37,9 +37,6 @@ RATE_LIMIT_IMAGES = int(os.getenv("RATE_LIMIT_IMAGES", 20))  # per minute
 GEMINI_CONFIG = {
     "generation_config": {
         "response_modalities": ["TEXT"],  # Phase A: text only
-        # "temperature": 0.7,
-        # "top_p": 0.8,
-        # "top_k": 40,
     },
 }
 
