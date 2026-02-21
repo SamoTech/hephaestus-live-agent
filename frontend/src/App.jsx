@@ -2,34 +2,41 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Play, Square, Cpu, Zap, Send, Camera, Volume2, VolumeX } from 'lucide-react';
 
 // --- PCM Audio Player ---
-// Gemini native-audio returns raw 16-bit PCM at 24kHz mono
+// Gemini native-audio returns raw 16-bit PCM signed at 24kHz mono
 const createAudioPlayer = () => {
-  const audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
+  let audioCtx = null;
   let nextStartTime = 0;
+
+  const getCtx = () => {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
+    }
+    return audioCtx;
+  };
 
   const playChunk = (base64Data) => {
     try {
-      // Decode base64 -> ArrayBuffer
+      const ctx = getCtx();
       const binary = atob(base64Data);
       const bytes = new Uint8Array(binary.length);
       for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
 
-      // Convert 16-bit PCM -> Float32
-      const samples = bytes.length / 2;
+      // 16-bit little-endian PCM -> Float32
+      const samples = Math.floor(bytes.length / 2);
+      if (samples === 0) return;
       const float32 = new Float32Array(samples);
       const view = new DataView(bytes.buffer);
       for (let i = 0; i < samples; i++) {
         float32[i] = view.getInt16(i * 2, true) / 32768.0;
       }
 
-      // Create and schedule audio buffer
-      const buffer = audioCtx.createBuffer(1, samples, 24000);
+      const buffer = ctx.createBuffer(1, samples, 24000);
       buffer.copyToChannel(float32, 0);
-      const source = audioCtx.createBufferSource();
+      const source = ctx.createBufferSource();
       source.buffer = buffer;
-      source.connect(audioCtx.destination);
+      source.connect(ctx.destination);
 
-      const now = audioCtx.currentTime;
+      const now = ctx.currentTime;
       const startAt = Math.max(now, nextStartTime);
       source.start(startAt);
       nextStartTime = startAt + buffer.duration;
@@ -38,7 +45,11 @@ const createAudioPlayer = () => {
     }
   };
 
-  const resume = () => { if (audioCtx.state === 'suspended') audioCtx.resume(); };
+  const resume = () => {
+    const ctx = getCtx();
+    if (ctx.state === 'suspended') ctx.resume();
+  };
+
   const reset = () => { nextStartTime = 0; };
 
   return { playChunk, resume, reset };
@@ -52,6 +63,7 @@ const App = () => {
   const [isSending, setIsSending] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+  const audioTimeoutRef = useRef(null);
 
   const videoRef = useRef(null);
   const wsRef = useRef(null);
@@ -59,6 +71,9 @@ const App = () => {
   const canvasRef = useRef(null);
   const audioPlayerRef = useRef(null);
   const logsEndRef = useRef(null);
+  const isMutedRef = useRef(false);
+
+  useEffect(() => { isMutedRef.current = isMuted; }, [isMuted]);
 
   // Init audio player once
   useEffect(() => {
@@ -74,48 +89,72 @@ const App = () => {
     setLogs(prev => [...prev, { type, message, timestamp: new Date().toLocaleTimeString() }]);
   }, []);
 
+  const markAudioPlaying = useCallback(() => {
+    setIsAudioPlaying(true);
+    if (audioTimeoutRef.current) clearTimeout(audioTimeoutRef.current);
+    audioTimeoutRef.current = setTimeout(() => setIsAudioPlaying(false), 1500);
+  }, []);
+
   // WebSocket connection
   useEffect(() => {
     const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws/live';
 
     const connectWebSocket = () => {
       try {
-        wsRef.current = new WebSocket(wsUrl);
+        const ws = new WebSocket(wsUrl);
+        wsRef.current = ws;
 
-        wsRef.current.onopen = () => {
+        ws.onopen = () => {
           setIsConnected(true);
           audioPlayerRef.current?.resume();
           addLog('system', 'Connected to Hephaestus AI Backend');
         };
 
-        wsRef.current.onmessage = (event) => {
+        ws.onmessage = (event) => {
           const data = JSON.parse(event.data);
 
-          if (data.type === 'system') {
-            addLog('system', data.text || data.message);
-          } else if (data.type === 'model_text') {
-            addLog('agent', data.text);
-          } else if (data.type === 'model_audio') {
-            // Play PCM audio chunk
-            if (!isMuted && audioPlayerRef.current) {
-              audioPlayerRef.current.resume();
-              audioPlayerRef.current.playChunk(data.data);
-              setIsAudioPlaying(true);
-              setTimeout(() => setIsAudioPlaying(false), 1000);
-            }
-          } else if (data.type === 'error' || data.error) {
-            addLog('error', data.text || data.error);
+          switch (data.type) {
+            case 'system':
+              addLog('system', data.text || data.message);
+              break;
+
+            case 'model_text':
+              // Real transcript text (thoughts already filtered on backend)
+              addLog('agent', data.text);
+              break;
+
+            case 'model_audio':
+              if (!isMutedRef.current && audioPlayerRef.current) {
+                audioPlayerRef.current.resume();
+                audioPlayerRef.current.playChunk(data.data);
+                markAudioPlaying();
+              }
+              break;
+
+            case 'audio_start':
+              if (!isMutedRef.current) {
+                markAudioPlaying();
+                addLog('agent', '🔊 Speaking...');
+              }
+              break;
+
+            case 'error':
+              addLog('error', data.text || data.message);
+              break;
+
+            default:
+              if (data.error) addLog('error', data.error);
           }
         };
 
-        wsRef.current.onclose = () => {
+        ws.onclose = () => {
           setIsConnected(false);
           audioPlayerRef.current?.reset();
           addLog('system', 'Disconnected. Reconnecting in 3s...');
           setTimeout(connectWebSocket, 3000);
         };
 
-        wsRef.current.onerror = () => {
+        ws.onerror = () => {
           addLog('error', 'WebSocket error. Is the backend running?');
         };
       } catch (error) {
@@ -152,6 +191,7 @@ const App = () => {
     if (!videoRef.current || !canvasRef.current) return null;
     const canvas = canvasRef.current;
     const video = videoRef.current;
+    if (!video.videoWidth) return null;
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     canvas.getContext('2d').drawImage(video, 0, 0);
@@ -179,6 +219,7 @@ const App = () => {
     setIsSending(true);
     addLog('user', inputText);
     try {
+      // Always send a fresh frame with text queries when camera is live
       if (isLive) {
         const frame = captureFrame();
         if (frame) {
@@ -227,9 +268,11 @@ const App = () => {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          {/* Mute toggle */}
           <button
-            onClick={() => setIsMuted(m => !m)}
+            onClick={() => {
+              setIsMuted(m => !m);
+              audioPlayerRef.current?.resume();
+            }}
             className={`p-3 rounded-xl border transition ${
               isMuted
                 ? 'border-red-600 bg-red-600/20 text-red-400'
@@ -271,9 +314,8 @@ const App = () => {
                 <span className="text-xs text-green-400 font-bold">LIVE</span>
               </div>
             )}
-            {/* Audio playing indicator */}
             {isAudioPlaying && !isMuted && (
-              <div className="absolute bottom-4 left-4 flex items-center gap-2 bg-black/60 px-3 py-1 rounded-full">
+              <div className="absolute bottom-4 left-4 flex items-center gap-2 bg-black/60 px-3 py-2 rounded-full">
                 <Volume2 size={14} className="text-hephaestus-orange animate-pulse" />
                 <span className="text-xs text-hephaestus-orange font-bold">SPEAKING</span>
               </div>
@@ -317,7 +359,7 @@ const App = () => {
                 >
                   <span className="text-xs text-gray-500">[{log.timestamp}]</span>
                   <span className="ml-2 font-semibold">[{log.type.toUpperCase()}]</span>
-                  <p className="mt-1">{log.message}</p>
+                  <p className="mt-1 whitespace-pre-wrap">{log.message}</p>
                 </div>
               ))
             )}

@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import base64
 import asyncio
@@ -50,6 +51,13 @@ LIVE_CONFIG = types.LiveConnectConfig(
     system_instruction=get_prompt("default"),
 )
 
+# Thought pattern: Gemini returns thoughts as **Title Case Phrase** lines
+_THOUGHT_RE = re.compile(r'^\*\*[A-Z][^*]+\*\*')
+
+def is_thought(text: str) -> bool:
+    """Return True if this text looks like an internal thought chunk."""
+    return bool(_THOUGHT_RE.match(text.strip()))
+
 
 async def ws_to_gemini(ws: WebSocket, session):
     try:
@@ -70,26 +78,33 @@ async def ws_to_gemini(ws: WebSocket, session):
 
 
 async def gemini_to_ws(ws: WebSocket, session):
+    audio_chunks = 0
     try:
         async for response in session.receive():
+
             # --- server_content parts ---
             if hasattr(response, "server_content") and response.server_content:
                 model_turn = getattr(response.server_content, "model_turn", None)
                 if model_turn:
                     for part in (getattr(model_turn, "parts", []) or []):
-                        # Skip internal thought parts
+
+                        # 1. Skip by thought flag
                         if getattr(part, "thought", False):
                             continue
 
-                        # Text part
+                        # 2. Text part — skip if it looks like a thought
                         if hasattr(part, "text") and part.text:
-                            await ws.send_text(json.dumps({
-                                "type": "model_text",
-                                "text": part.text,
-                            }))
+                            if not is_thought(part.text):
+                                await ws.send_text(json.dumps({
+                                    "type": "model_text",
+                                    "text": part.text,
+                                }))
+                            else:
+                                print(f"[BACKEND] Filtered thought: {part.text[:60]}")
 
-                        # Audio part
+                        # 3. Audio part
                         if hasattr(part, "inline_data") and part.inline_data:
+                            audio_chunks += 1
                             audio_b64 = base64.b64encode(
                                 part.inline_data.data
                             ).decode("utf-8")
@@ -99,14 +114,20 @@ async def gemini_to_ws(ws: WebSocket, session):
                                 "mime_type": getattr(part.inline_data, "mime_type", "audio/pcm;rate=24000"),
                             }))
 
-            # --- Top-level audio (raw PCM from native-audio model) ---
+            # --- Top-level raw PCM audio (native-audio model primary path) ---
             if hasattr(response, "data") and response.data:
+                audio_chunks += 1
                 audio_b64 = base64.b64encode(response.data).decode("utf-8")
                 await ws.send_text(json.dumps({
                     "type": "model_audio",
                     "data": audio_b64,
                     "mime_type": "audio/pcm;rate=24000",
                 }))
+                # Notify frontend on first audio chunk so it can show SPEAKING
+                if audio_chunks == 1:
+                    await ws.send_text(json.dumps({
+                        "type": "audio_start",
+                    }))
 
     except WebSocketDisconnect:
         pass
@@ -240,7 +261,6 @@ if __name__ == "__main__":
         port=PORT,
         log_level=LOG_LEVEL.lower(),
         reload=False,
-        # Increase ping timeouts to prevent 1011 keepalive disconnects
         ws_ping_interval=30,
         ws_ping_timeout=60,
     )
