@@ -230,7 +230,7 @@ Hephaestus ਇੱਕ ਅੱਤਿ ਆਧੁਨਿਕ ਮਲਟੀਮੋਡਲ AI
 
 ### Hephaestus কী?
 
-Hephaestus একটি অত্যাধুনিক মাল্টিমোডাল AI এজেন্ট যা **Google Gemini 2.0 Flash** দ্বারা চালিত এবং ভৌত কাজ এবং ডিজিটাল টুলসের মধ্যে ফাঁক পূরণ করে। আপনার ক্যামেরা ব্যবহার করে, এটি রিয়েল-টাইমে আপনার কর্মক্ষেত্র পর্যবেক্ষণ করে এবং বুদ্ধিমান নির্দেশনা, কোড জেনারেশন, ভিজুয়াল বিশ্লেষণ এবং সৃজনশীল সহায়তা প্রদান করে।
+Hephaestus একটি অত্যাধুনিক মাল্টিমোডাল AI এজেন্ট যা **Google Gemini 2.0 Flash** দ্বারা চালিত এবং ভৌত কাজ এবং ডিজিটাল টুলসের মধ্যে ফাঁক পূরণ করে। আপনার ক্যামেরা ব্যবহার করে, এটি রিয়েল-টাইমে আপনার কর্মক্ষেত্র পর্যবেক্ষণ করে এবং বুদ্ধিমান নির্দেশনা, কোড জেনারেশন, ভিজুয়াল বিশ্লেষণ এবং সৃজনশীল সহায়তা প্রদান করে।
 
 ---
 
@@ -323,7 +323,9 @@ Hephaestus is een geavanceerde multimodale AI-agent aangedreven door **Google Ge
 - [x] Frontend camera streaming and real-time UI
 - [x] Text input/output communication
 - [x] Periodic frame capture and analysis
-- [x] Basic error handling and logging
+- [x] Graceful API key handling and error reporting
+- [x] Config modularized into `settings.py` and `prompts.py`
+- [x] Health check endpoint (`GET /health`)
 
 **Phase B - Audio & Intelligence** 🚧 IN PROGRESS
 - [ ] Microphone audio streaming (16-bit PCM, 16kHz)
@@ -354,7 +356,9 @@ hephaestus-live-agent/
 ├── backend/                      # FastAPI WebSocket server
 │   ├── main.py                   # Main application entry point
 │   ├── requirements.txt          # Python dependencies
-│   ├── .env.example              # Environment variables template
+│   ├── .env.example              # Environment variables template (all vars documented)
+│   ├── Dockerfile                # Backend container image
+│   ├── .dockerignore             # Docker build exclusions
 │   └── config/                   # Configuration files
 │       ├── prompts.py            # System prompts for different modes
 │       └── settings.py           # App settings and constants
@@ -366,7 +370,11 @@ hephaestus-live-agent/
 │   │   └── index.css             # Global styles
 │   ├── index.html                # HTML entry point
 │   ├── vite.config.js            # Vite configuration
-│   ├── tailwind.config.js        # Tailwind CSS configuration
+│   ├── tailwind.config.js        # Tailwind CSS configuration (custom colors)
+│   ├── postcss.config.js         # PostCSS configuration
+│   ├── .eslintrc.cjs             # ESLint configuration
+│   ├── Dockerfile                # Frontend container image
+│   ├── .dockerignore             # Docker build exclusions
 │   └── package.json              # Node dependencies
 │
 ├── docs/                         # Documentation
@@ -381,10 +389,17 @@ hephaestus-live-agent/
 │   ├── workflows/
 │   │   ├── ci.yml                # Continuous integration
 │   │   └── deploy.yml            # Deployment workflow
-│   └── ISSUE_TEMPLATE/
+│   ├── ISSUE_TEMPLATE/           # Issue templates
+│   ├── FUNDING.yml               # Sponsorship configuration
+│   └── pull_request_template.md  # PR template
 │
+├── docker-compose.yml            # Full-stack Docker Compose
 ├── .gitignore                    # Git ignore rules
 ├── LICENSE                       # MIT License
+├── CHANGELOG.md                  # Version history
+├── CONTRIBUTING.md               # Contribution guidelines
+├── CODE_OF_CONDUCT.md            # Community standards
+├── SECURITY.md                   # Security policy
 └── README.md                     # This file
 ```
 
@@ -420,15 +435,17 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 # Install dependencies
 pip install -r requirements.txt
 
-# Configure API key
+# Configure environment variables
 cp .env.example .env
-# Edit .env and add your GEMINI_API_KEY
+# Edit .env — at minimum set GEMINI_API_KEY (see .env.example for all options)
 ```
 
-**`.env` file:**
+**Minimum required `.env`:**
 ```env
 GEMINI_API_KEY=your_actual_api_key_here
 ```
+
+> See [`backend/.env.example`](backend/.env.example) for the full list of configurable variables (model, server host/port, CORS, WebSocket, frame processing, rate limits).
 
 #### 3. Frontend Setup
 
@@ -441,45 +458,86 @@ npm install
 
 ### Running the Application
 
-#### Terminal 1 - Backend
+#### Terminal 1 — Backend
 ```bash
 cd backend
-source venv/bin/activate  # Activate venv if not already active
+source venv/bin/activate   # skip if already active
 python main.py
+# Backend starts on http://localhost:8000
 ```
 
-Backend will start on `http://localhost:8000`
-
-#### Terminal 2 - Frontend
+#### Terminal 2 — Frontend
 ```bash
 cd frontend
 npm run dev
+# Frontend starts on http://localhost:5173
 ```
 
-Frontend will start on `http://localhost:5173`
+### Running with Docker Compose
+
+```bash
+# Copy and configure env first
+cp backend/.env.example backend/.env
+# Edit backend/.env and add your GEMINI_API_KEY
+
+docker compose up --build
+# Backend: http://localhost:8000
+# Frontend: http://localhost:5173
+```
 
 #### 4. Test the Application
 
 1. Open browser to `http://localhost:5173`
-2. Click the **orange Play button** to start camera and connect
+2. Click the **orange Play button** to start the camera
 3. Grant camera permissions when prompted
-4. You should see:
-   - `[SYSTEM] Connected to Hephaestus backend`
-   - Live camera feed
-   - Status indicator showing "LIVE" with green pulse
-5. Type a message in the input box or just wait
+4. You should see in the logs panel:
+   - `[SYSTEM] Connected to Hephaestus AI. Camera feed active.`
+   - Live camera feed with green **LIVE** pulse badge
+5. Type a message and press **Enter** or click **Send**
 6. Camera frames are automatically sent every 3 seconds
 7. Watch for **[AGENT]** responses in the logs panel
 
+#### 5. Verify Backend Health
+
+```bash
+curl http://localhost:8000/health
+# {"status": "ok", "gemini_ready": true}
+```
+
 ---
 
-For complete documentation, architecture details, API reference, and deployment guides, see:
+## 🔌 API Reference
 
-- [Full Documentation](docs/)
+| Endpoint | Method | Description |
+|---|---|---|
+| `/` | GET | Service info and version |
+| `/health` | GET | Health check + Gemini readiness status |
+| `/ws/live` | WebSocket | Bidirectional AI streaming endpoint |
+
+### WebSocket Message Types
+
+**Client → Server:**
+```json
+{ "type": "text",  "text": "your message" }
+{ "type": "image", "data": "<base64>", "mime_type": "image/jpeg" }
+```
+
+**Server → Client:**
+```json
+{ "type": "system",     "text": "status message" }
+{ "type": "model_text", "text": "AI response" }
+{ "type": "error",      "text": "error description" }
+```
+
+---
+
+For complete documentation, architecture details, and deployment guides, see:
+
 - [Architecture](docs/ARCHITECTURE.md)
 - [API Reference](docs/API.md)
 - [Deployment Guide](docs/DEPLOYMENT.md)
 - [Contributing Guidelines](CONTRIBUTING.md)
+- [Changelog](CHANGELOG.md)
 
 ---
 
