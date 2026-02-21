@@ -51,26 +51,17 @@ CONFIG = {
 
 
 async def ws_to_gemini(ws: WebSocket, session):
-    """
-    Forward browser WebSocket messages to Gemini Live session.
-    Supported message types:
-      { "type": "text",  "text": "..." }
-      { "type": "image", "data": "<base64>", "mime_type": "image/jpeg" }
-    """
     try:
         while True:
             msg = await ws.receive_text()
             data = json.loads(msg)
-
             if data.get("type") == "text":
                 await session.send(data["text"], end_of_turn=True)
-
             elif data.get("type") == "image":
                 await session.send({
                     "mime_type": data.get("mime_type", "image/jpeg"),
                     "data": data["data"],
                 })
-
     except WebSocketDisconnect:
         pass
     except Exception as e:
@@ -78,19 +69,13 @@ async def ws_to_gemini(ws: WebSocket, session):
 
 
 async def gemini_to_ws(ws: WebSocket, session):
-    """
-    Forward Gemini Live streaming responses back to browser.
-    """
     try:
         async for response in session.receive():
-            # Direct text on response object
             if hasattr(response, "text") and response.text:
                 await ws.send_text(json.dumps({
                     "type": "model_text",
                     "text": response.text,
                 }))
-
-            # Structured server_content chunks
             if hasattr(response, "server_content") and response.server_content:
                 model_turn = getattr(response.server_content, "model_turn", None)
                 if model_turn:
@@ -104,7 +89,6 @@ async def gemini_to_ws(ws: WebSocket, session):
                             "type": "model_text",
                             "text": "".join(text_chunks),
                         }))
-
     except WebSocketDisconnect:
         pass
     except Exception as e:
@@ -118,7 +102,12 @@ async def root():
         "version": APP_VERSION,
         "status": "running",
         "gemini_configured": bool(client),
-        "endpoints": {"websocket": "/ws/live"},
+        "active_model": GEMINI_MODEL,
+        "endpoints": {
+            "websocket": "/ws/live",
+            "models": "/models",
+            "live_models": "/models/live",
+        },
     }
 
 
@@ -127,7 +116,56 @@ async def health():
     return {
         "status": "ok",
         "gemini_ready": bool(client),
+        "active_model": GEMINI_MODEL,
     }
+
+
+@app.get("/models")
+async def list_models():
+    """List all Gemini models available to your API key."""
+    if not client:
+        return {"error": "GEMINI_API_KEY not configured"}
+    try:
+        models = []
+        for m in client.models.list():
+            models.append({
+                "name": m.name,
+                "display_name": getattr(m, "display_name", ""),
+                "supported_actions": getattr(m, "supported_actions", []),
+            })
+        return {
+            "total": len(models),
+            "active_model": GEMINI_MODEL,
+            "models": sorted(models, key=lambda x: x["name"]),
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/models/live")
+async def list_live_models():
+    """List only models that support the Live API (bidiGenerateContent)."""
+    if not client:
+        return {"error": "GEMINI_API_KEY not configured"}
+    try:
+        live_models = []
+        for m in client.models.list():
+            actions = getattr(m, "supported_actions", []) or []
+            # Convert actions to strings for safe comparison
+            action_strs = [str(a).lower() for a in actions]
+            if any("bidi" in a or "live" in a for a in action_strs):
+                live_models.append({
+                    "name": m.name,
+                    "display_name": getattr(m, "display_name", ""),
+                    "supported_actions": actions,
+                })
+        return {
+            "total": len(live_models),
+            "active_model": GEMINI_MODEL,
+            "live_models": sorted(live_models, key=lambda x: x["name"]),
+        }
+    except Exception as e:
+        return {"error": str(e)}
 
 
 @app.websocket("/ws/live")
@@ -135,7 +173,6 @@ async def live_endpoint(ws: WebSocket):
     await ws.accept()
     print("[BACKEND] Client connected to /ws/live")
 
-    # Reject early if API key is missing
     if not client:
         await ws.send_text(json.dumps({
             "type": "error",
@@ -149,7 +186,7 @@ async def live_endpoint(ws: WebSocket):
             model=GEMINI_MODEL,
             config=CONFIG,
         ) as live_session:
-            print("[BACKEND] Connected to Gemini Live session")
+            print(f"[BACKEND] Connected to Gemini Live session ({GEMINI_MODEL})")
 
             await ws.send_text(json.dumps({
                 "type": "system",

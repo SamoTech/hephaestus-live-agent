@@ -1,5 +1,5 @@
 fastapi
 uvicorn[standard]
-google-genai
+google-genai>=1.5.0
 python-dotenv
 websockets
