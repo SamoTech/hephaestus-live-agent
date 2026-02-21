@@ -5,7 +5,14 @@ export default {
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      // FIX #3: define custom Hephaestus brand colors used in App.jsx
+      colors: {
+        'hephaestus-dark':   '#020205',
+        'hephaestus-panel':  '#0d0d14',
+        'hephaestus-orange': '#f97316',
+      },
+    },
   },
   plugins: [],
-}
+};

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Mic, Video, Play, Square, Cpu, Zap, Send, Camera } from 'lucide-react';
+import { Play, Square, Cpu, Zap, Send, Camera } from 'lucide-react';
 
 const App = () => {
   const [isLive, setIsLive] = useState(false);
@@ -7,57 +7,56 @@ const App = () => {
   const [logs, setLogs] = useState([]);
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
-  
+
   const videoRef = useRef(null);
   const wsRef = useRef(null);
   const streamRef = useRef(null);
   const canvasRef = useRef(null);
 
-  // WebSocket connection
+  // WebSocket connection — FIX #1: correct endpoint /ws/live
   useEffect(() => {
-    const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws';
-    
+    const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws/live';
+
     const connectWebSocket = () => {
       try {
         wsRef.current = new WebSocket(wsUrl);
-        
+
         wsRef.current.onopen = () => {
           setIsConnected(true);
           addLog('system', 'Connected to Hephaestus AI Backend');
         };
-        
+
         wsRef.current.onmessage = (event) => {
           const data = JSON.parse(event.data);
-          
+
+          // FIX #2: handle 'model_text' type (what backend actually sends)
           if (data.type === 'system') {
-            addLog('system', data.message);
-          } else if (data.type === 'response') {
+            addLog('system', data.text || data.message);
+          } else if (data.type === 'model_text') {
             addLog('agent', data.text);
-          } else if (data.error) {
-            addLog('error', `Error: ${data.error}`);
+          } else if (data.type === 'error' || data.error) {
+            addLog('error', data.text || data.error);
           }
         };
-        
+
         wsRef.current.onclose = () => {
           setIsConnected(false);
-          addLog('system', 'Disconnected from backend. Attempting to reconnect...');
+          addLog('system', 'Disconnected. Reconnecting in 3s...');
           setTimeout(connectWebSocket, 3000);
         };
-        
-        wsRef.current.onerror = (error) => {
-          addLog('error', 'WebSocket connection error. Check if backend is running.');
+
+        wsRef.current.onerror = () => {
+          addLog('error', 'WebSocket error. Is the backend running?');
         };
       } catch (error) {
         addLog('error', `Failed to connect: ${error.message}`);
       }
     };
-    
+
     connectWebSocket();
-    
+
     return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
+      if (wsRef.current) wsRef.current.close();
     };
   }, []);
 
@@ -67,21 +66,19 @@ const App = () => {
 
   const toggleLive = async () => {
     if (isLive) {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-      }
+      if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
       setIsLive(false);
       addLog('system', 'Camera stopped');
     } else {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { width: 1280, height: 720 }, 
-          audio: false 
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 1280, height: 720 },
+          audio: false,
         });
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
         setIsLive(true);
-        addLog('system', 'Camera started — Ready for visual assistance');
+        addLog('system', 'Camera started — Visual feed active');
       } catch (error) {
         addLog('error', `Camera access denied: ${error.message}`);
       }
@@ -99,7 +96,7 @@ const App = () => {
     return canvas.toDataURL('image/jpeg', 0.8);
   };
 
-  // Auto-capture frame every 3 seconds while live
+  // Auto-send frame every 3s while live + connected
   useEffect(() => {
     if (!isLive || !isConnected) return;
     const interval = setInterval(() => {
@@ -120,11 +117,9 @@ const App = () => {
     setIsSending(true);
     addLog('user', inputText);
     try {
-      const message = { type: 'text', text: inputText };
       if (isLive) {
         const frame = captureFrame();
         if (frame) {
-          // send frame first
           wsRef.current.send(JSON.stringify({
             type: 'image',
             data: frame.split(',')[1],
@@ -132,10 +127,10 @@ const App = () => {
           }));
         }
       }
-      wsRef.current.send(JSON.stringify(message));
+      wsRef.current.send(JSON.stringify({ type: 'text', text: inputText }));
       setInputText('');
     } catch (error) {
-      addLog('error', `Failed to send message: ${error.message}`);
+      addLog('error', `Failed to send: ${error.message}`);
     } finally {
       setIsSending(false);
     }
@@ -163,11 +158,9 @@ const App = () => {
               HEPHAESTUS <span className="text-hephaestus-orange">v1.0</span>
             </h1>
             <p className="text-sm text-gray-400">
-              {isConnected ? (
-                <span className="text-green-400">● Connected</span>
-              ) : (
-                <span className="text-red-400">● Disconnected</span>
-              )}
+              {isConnected
+                ? <span className="text-green-400">● Connected</span>
+                : <span className="text-red-400">● Disconnected</span>}
             </p>
           </div>
         </div>
@@ -194,7 +187,6 @@ const App = () => {
                 <p className="text-gray-500 text-lg">CAMERA OFFLINE</p>
               </div>
             )}
-            {/* Live badge */}
             {isLive && (
               <div className="absolute top-4 right-4 flex items-center gap-2 bg-black/60 px-3 py-1 rounded-full">
                 <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
@@ -203,18 +195,15 @@ const App = () => {
             )}
           </div>
 
-          {/* Camera Control Button */}
           <button
             onClick={toggleLive}
             className={`w-20 h-20 rounded-[25px] border-none cursor-pointer mx-auto mt-6 flex items-center justify-center transition-all ${
               isLive ? 'bg-red-600 hover:bg-red-700' : 'bg-hephaestus-orange hover:bg-orange-700'
             }`}
           >
-            {isLive ? (
-              <Square size={32} fill="white" color="white" />
-            ) : (
-              <Play size={32} fill="white" color="white" className="ml-1" />
-            )}
+            {isLive
+              ? <Square size={32} fill="white" color="white" />
+              : <Play size={32} fill="white" color="white" className="ml-1" />}
           </button>
         </div>
 
@@ -225,7 +214,6 @@ const App = () => {
             WORKSPACE LOGS
           </h2>
 
-          {/* Logs Area */}
           <div className="flex-1 overflow-y-auto space-y-3 mb-6 max-h-[500px]">
             {logs.length === 0 ? (
               <div className="bg-gray-800 p-4 rounded-2xl text-gray-400">
@@ -250,7 +238,6 @@ const App = () => {
             )}
           </div>
 
-          {/* Input Area */}
           <div className="flex gap-3">
             <input
               type="text"
