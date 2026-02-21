@@ -1,280 +1,276 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Mic, Video, Play, Square, Cpu, Zap, ShieldCheck, Send } from 'lucide-react';
+import { Mic, Video, Play, Square, Cpu, Zap, Send, Camera } from 'lucide-react';
 
 const App = () => {
   const [isLive, setIsLive] = useState(false);
-  const [socket, setSocket] = useState(null);
+  const [isConnected, setIsConnected] = useState(false);
   const [logs, setLogs] = useState([]);
-  const [userInput, setUserInput] = useState("");
+  const [inputText, setInputText] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  
   const videoRef = useRef(null);
+  const wsRef = useRef(null);
+  const streamRef = useRef(null);
   const canvasRef = useRef(null);
 
-  const appendLog = (entry) => {
-    setLogs(prev => [...prev, { text: entry, time: new Date().toLocaleTimeString() }]);
-  };
-
-  const startWebSocket = () => {
-    const ws = new WebSocket("ws://localhost:8000/ws/live");
+  // WebSocket connection
+  useEffect(() => {
+    const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws';
     
-    ws.onopen = () => {
-      appendLog("[SYSTEM] Connected to Hephaestus backend");
-    };
-    
-    ws.onmessage = (event) => {
+    const connectWebSocket = () => {
       try {
-        const msg = JSON.parse(event.data);
-        if (msg.type === "model_text") {
-          appendLog(`[AGENT] ${msg.text}`);
-        } else if (msg.type === "system") {
-          appendLog(`[SYSTEM] ${msg.text}`);
-        } else if (msg.type === "error") {
-          appendLog(`[ERROR] ${msg.text}`);
-        }
-      } catch (e) {
-        console.error("Failed to parse message:", e);
+        wsRef.current = new WebSocket(wsUrl);
+        
+        wsRef.current.onopen = () => {
+          setIsConnected(true);
+          addLog('system', 'Connected to Hephaestus AI Backend');
+        };
+        
+        wsRef.current.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          
+          if (data.type === 'system') {
+            addLog('system', data.message);
+          } else if (data.type === 'response') {
+            addLog('agent', data.text);
+          } else if (data.error) {
+            addLog('error', `Error: ${data.error}`);
+          }
+        };
+        
+        wsRef.current.onclose = () => {
+          setIsConnected(false);
+          addLog('system', 'Disconnected from backend. Attempting to reconnect...');
+          setTimeout(connectWebSocket, 3000);
+        };
+        
+        wsRef.current.onerror = (error) => {
+          addLog('error', 'WebSocket connection error. Check if backend is running.');
+        };
+      } catch (error) {
+        addLog('error', `Failed to connect: ${error.message}`);
       }
     };
     
-    ws.onclose = () => {
-      appendLog("[SYSTEM] Connection closed");
-    };
+    connectWebSocket();
     
-    ws.onerror = (error) => {
-      appendLog("[ERROR] WebSocket error - is backend running?");
-      console.error("WebSocket error:", error);
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
     };
-    
-    setSocket(ws);
-  };
+  }, []);
 
-  const stopWebSocket = () => {
-    if (socket) {
-      socket.close();
-      setSocket(null);
-    }
+  const addLog = (type, message) => {
+    setLogs(prev => [...prev, { type, message, timestamp: new Date().toLocaleTimeString() }]);
   };
 
   const toggleLive = async () => {
     if (isLive) {
-      // Stop camera and websocket
-      if (videoRef.current && videoRef.current.srcObject) {
-        videoRef.current.srcObject.getTracks().forEach(t => t.stop());
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
       }
-      stopWebSocket();
       setIsLive(false);
-      return;
-    }
-    
-    try {
-      // Start camera
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: true, 
-        audio: false  // Phase A: no audio yet
-      });
-      videoRef.current.srcObject = stream;
-      setIsLive(true);
-      
-      // Start websocket
-      startWebSocket();
-    } catch (error) {
-      appendLog("[ERROR] Failed to access camera. Please grant permissions.");
-      console.error("Camera error:", error);
+      addLog('system', 'Camera stopped');
+    } else {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { width: 1280, height: 720 }, 
+          audio: false 
+        });
+        videoRef.current.srcObject = stream;
+        streamRef.current = stream;
+        setIsLive(true);
+        addLog('system', 'Camera started — Ready for visual assistance');
+      } catch (error) {
+        addLog('error', `Camera access denied: ${error.message}`);
+      }
     }
   };
 
-  const sendText = () => {
-    if (!socket || socket.readyState !== WebSocket.OPEN) {
-      appendLog("[ERROR] Not connected to backend");
-      return;
+  const captureFrame = () => {
+    if (!videoRef.current || !canvasRef.current) return null;
+    const canvas = canvasRef.current;
+    const video = videoRef.current;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0);
+    return canvas.toDataURL('image/jpeg', 0.8);
+  };
+
+  // Auto-capture frame every 3 seconds while live
+  useEffect(() => {
+    if (!isLive || !isConnected) return;
+    const interval = setInterval(() => {
+      const frame = captureFrame();
+      if (frame && wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({
+          type: 'image',
+          data: frame.split(',')[1],
+          mime_type: 'image/jpeg',
+        }));
+      }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [isLive, isConnected]);
+
+  const sendMessage = async () => {
+    if (!inputText.trim() || !isConnected || isSending) return;
+    setIsSending(true);
+    addLog('user', inputText);
+    try {
+      const message = { type: 'text', text: inputText };
+      if (isLive) {
+        const frame = captureFrame();
+        if (frame) {
+          // send frame first
+          wsRef.current.send(JSON.stringify({
+            type: 'image',
+            data: frame.split(',')[1],
+            mime_type: 'image/jpeg',
+          }));
+        }
+      }
+      wsRef.current.send(JSON.stringify(message));
+      setInputText('');
+    } catch (error) {
+      addLog('error', `Failed to send message: ${error.message}`);
+    } finally {
+      setIsSending(false);
     }
-    if (!userInput.trim()) return;
-    
-    socket.send(JSON.stringify({
-      type: "text",
-      text: userInput.trim()
-    }));
-    appendLog(`[YOU] ${userInput.trim()}`);
-    setUserInput("");
   };
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      sendText();
+      sendMessage();
     }
   };
 
-  // Capture and send frames periodically when live
-  useEffect(() => {
-    if (!isLive || !socket || socket.readyState !== WebSocket.OPEN) return;
-    
-    const interval = setInterval(() => {
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-      if (!video || !canvas) return;
-      
-      const ctx = canvas.getContext('2d');
-      canvas.width = video.videoWidth || 640;
-      canvas.height = video.videoHeight || 480;
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      
-      canvas.toBlob((blob) => {
-        if (!blob || socket.readyState !== WebSocket.OPEN) return;
-        
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64 = reader.result.split(',')[1];
-          socket.send(JSON.stringify({
-            type: "image",
-            data: base64,
-            mime_type: blob.type
-          }));
-        };
-        reader.readAsDataURL(blob);
-      }, 'image/jpeg', 0.7);
-    }, 3000); // Send frame every 3 seconds
-    
-    return () => clearInterval(interval);
-  }, [isLive, socket]);
-
   return (
-    <div style={{ backgroundColor: '#020205', color: 'white', minHeight: '100vh', padding: '40px', fontFamily: 'sans-serif' }}>
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#0a0a12', padding: '20px', borderRadius: '20px', border: '1px solid #222' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <div style={{ backgroundColor: '#ea580c', padding: '10px', borderRadius: '12px' }}><Cpu /></div>
-          <h1 style={{ fontSize: '24px', fontWeight: 'bold' }}>HEPHAESTUS <span style={{ color: '#ea580c' }}>v1.0</span></h1>
+    <div className="bg-hephaestus-dark text-white min-h-screen p-10">
+      <canvas ref={canvasRef} style={{ display: 'none' }} />
+
+      {/* Header */}
+      <header className="flex justify-between items-center bg-hephaestus-panel p-5 rounded-3xl border border-gray-800 mb-8">
+        <div className="flex items-center gap-4">
+          <div className="bg-hephaestus-orange p-3 rounded-xl">
+            <Cpu size={24} />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold">
+              HEPHAESTUS <span className="text-hephaestus-orange">v1.0</span>
+            </h1>
+            <p className="text-sm text-gray-400">
+              {isConnected ? (
+                <span className="text-green-400">● Connected</span>
+              ) : (
+                <span className="text-red-400">● Disconnected</span>
+              )}
+            </p>
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <div style={{ 
-            backgroundColor: isLive ? '#22c55e' : '#666', 
-            width: '12px', 
-            height: '12px', 
-            borderRadius: '50%',
-            animation: isLive ? 'pulse 2s infinite' : 'none'
-          }} />
-          <span style={{ fontSize: '14px', color: '#888' }}>
-            {isLive ? 'LIVE' : 'OFFLINE'}
-          </span>
-        </div>
+        <button className="bg-white text-black px-6 py-3 rounded-xl font-bold hover:bg-gray-200 transition">
+          Export Session
+        </button>
       </header>
 
-      <div style={{ display: 'flex', gap: '30px', marginTop: '30px' }}>
+      {/* Main Content */}
+      <div className="flex gap-8">
         {/* Camera Panel */}
-        <div style={{ width: '400px' }}>
-          <div style={{ backgroundColor: '#111', aspectRatio: '4/3', borderRadius: '30px', overflow: 'hidden', border: '1px solid #222', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover', display: isLive ? 'block' : 'none' }} />
+        <div className="w-[450px]">
+          <div className="bg-gray-900 aspect-square rounded-[40px] overflow-hidden border border-gray-800 flex items-center justify-center relative">
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className={`w-full h-full object-cover ${isLive ? 'block' : 'hidden'}`}
+            />
             {!isLive && (
-              <div style={{ textAlign: 'center' }}>
-                <Video size={48} color="#444" style={{ margin: '0 auto 10px' }} />
-                <p style={{ color: '#444' }}>CAMERA OFFLINE</p>
+              <div className="text-center">
+                <Camera size={64} className="mx-auto mb-4 text-gray-600" />
+                <p className="text-gray-500 text-lg">CAMERA OFFLINE</p>
+              </div>
+            )}
+            {/* Live badge */}
+            {isLive && (
+              <div className="absolute top-4 right-4 flex items-center gap-2 bg-black/60 px-3 py-1 rounded-full">
+                <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+                <span className="text-xs text-green-400 font-bold">LIVE</span>
               </div>
             )}
           </div>
-          <button 
-            onClick={toggleLive} 
-            style={{ 
-              width: '80px', 
-              height: '80px', 
-              borderRadius: '25px', 
-              backgroundColor: isLive ? '#dc2626' : '#ea580c', 
-              border: 'none', 
-              cursor: 'pointer', 
-              margin: '20px auto', 
-              display: 'block',
-              transition: 'all 0.3s'
-            }}
+
+          {/* Camera Control Button */}
+          <button
+            onClick={toggleLive}
+            className={`w-20 h-20 rounded-[25px] border-none cursor-pointer mx-auto mt-6 flex items-center justify-center transition-all ${
+              isLive ? 'bg-red-600 hover:bg-red-700' : 'bg-hephaestus-orange hover:bg-orange-700'
+            }`}
           >
-            {isLive ? <Square color="white" fill="white" /> : <Play color="white" fill="white" />}
+            {isLive ? (
+              <Square size={32} fill="white" color="white" />
+            ) : (
+              <Play size={32} fill="white" color="white" className="ml-1" />
+            )}
           </button>
         </div>
 
-        {/* Workspace Panel */}
-        <div style={{ flex: 1, backgroundColor: '#0a0a12', borderRadius: '30px', padding: '30px', border: '1px solid #222', display: 'flex', flexDirection: 'column' }}>
-          <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-            <Zap color="#f97316" /> WORKSPACE LOGS
+        {/* Workspace Logs */}
+        <div className="flex-1 bg-hephaestus-panel rounded-[40px] p-8 border border-gray-800 flex flex-col">
+          <h2 className="flex items-center gap-3 text-xl font-bold mb-6">
+            <Zap color="#f97316" size={24} />
+            WORKSPACE LOGS
           </h2>
-          
-          {/* Logs Display */}
-          <div style={{ 
-            flex: 1, 
-            overflowY: 'auto', 
-            marginBottom: '20px',
-            maxHeight: '400px'
-          }}>
+
+          {/* Logs Area */}
+          <div className="flex-1 overflow-y-auto space-y-3 mb-6 max-h-[500px]">
             {logs.length === 0 ? (
-              <p style={{ backgroundColor: '#1a1a2e', padding: '15px', borderRadius: '15px', color: '#888' }}>
-                [SYSTEM] Waiting for connection... Click the play button to start.
-              </p>
+              <div className="bg-gray-800 p-4 rounded-2xl text-gray-400">
+                [SYSTEM] Waiting for connection...
+              </div>
             ) : (
-              logs.map((log, idx) => (
-                <div 
-                  key={idx} 
-                  style={{ 
-                    backgroundColor: log.text.startsWith('[AGENT]') ? '#ea580c22' : '#1a1a2e',
-                    color: log.text.startsWith('[AGENT]') ? '#fdba74' : log.text.startsWith('[ERROR]') ? '#ef4444' : '#888',
-                    padding: '15px', 
-                    borderRadius: '15px', 
-                    marginBottom: '10px',
-                    fontSize: '14px'
-                  }}
+              logs.map((log, index) => (
+                <div
+                  key={index}
+                  className={`p-4 rounded-2xl ${
+                    log.type === 'system' ? 'bg-gray-800 text-gray-300' :
+                    log.type === 'user'   ? 'bg-blue-900/30 text-blue-200' :
+                    log.type === 'agent'  ? 'bg-orange-900/30 text-orange-200' :
+                    'bg-red-900/30 text-red-200'
+                  }`}
                 >
-                  <span style={{ fontSize: '12px', opacity: 0.6, marginRight: '10px' }}>{log.time}</span>
-                  {log.text}
+                  <span className="text-xs text-gray-500">[{log.timestamp}]</span>
+                  <span className="ml-2 font-semibold">[{log.type.toUpperCase()}]</span>
+                  <p className="mt-1">{log.message}</p>
                 </div>
               ))
             )}
           </div>
 
-          {/* Text Input */}
-          <div style={{ display: 'flex', gap: '10px' }}>
+          {/* Input Area */}
+          <div className="flex gap-3">
             <input
               type="text"
-              value={userInput}
-              onChange={(e) => setUserInput(e.target.value)}
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Ask something or describe what you're showing..."
-              disabled={!isLive}
-              style={{
-                flex: 1,
-                backgroundColor: '#1a1a2e',
-                border: '1px solid #333',
-                borderRadius: '12px',
-                padding: '12px 16px',
-                color: 'white',
-                fontSize: '14px',
-                outline: 'none'
-              }}
+              placeholder="Ask Hephaestus anything..."
+              className="flex-1 bg-gray-800 text-white px-6 py-4 rounded-2xl border border-gray-700 focus:outline-none focus:border-hephaestus-orange transition"
+              disabled={!isConnected || isSending}
             />
             <button
-              onClick={sendText}
-              disabled={!isLive || !userInput.trim()}
-              style={{
-                backgroundColor: isLive && userInput.trim() ? '#ea580c' : '#333',
-                border: 'none',
-                borderRadius: '12px',
-                padding: '12px 20px',
-                cursor: isLive && userInput.trim() ? 'pointer' : 'not-allowed',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
+              onClick={sendMessage}
+              disabled={!isConnected || !inputText.trim() || isSending}
+              className="bg-hephaestus-orange px-6 py-4 rounded-2xl hover:bg-orange-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Send size={20} color="white" />
+              <Send size={20} />
             </button>
           </div>
         </div>
       </div>
-
-      {/* Hidden canvas for frame capture */}
-      <canvas ref={canvasRef} style={{ display: 'none' }} />
-      
-      {/* Add pulse animation */}
-      <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
-        }
-      `}</style>
     </div>
   );
 };
