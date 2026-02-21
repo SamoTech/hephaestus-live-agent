@@ -1,15 +1,16 @@
 import os
 import json
+import base64
 import asyncio
 from dotenv import load_dotenv
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from google import genai
+from google.genai import types
 
 from config.settings import (
     GEMINI_API_KEY,
     GEMINI_MODEL,
-    GEMINI_CONFIG,
     HOST,
     PORT,
     LOG_LEVEL,
@@ -36,18 +37,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- Gemini client: graceful handling if API key is missing ---
+# --- Gemini client ---
 client = None
 if GEMINI_API_KEY:
     client = genai.Client(api_key=GEMINI_API_KEY)
 else:
     print("[WARNING] GEMINI_API_KEY is not set. AI features will be disabled.")
 
-# Build runtime config from settings + prompts
-CONFIG = {
-    **GEMINI_CONFIG,
-    "system_instruction": get_prompt("default"),
-}
+# --- Live session config using typed objects ---
+LIVE_CONFIG = types.LiveConnectConfig(
+    response_modalities=["AUDIO"],
+    system_instruction=get_prompt("default"),
+)
 
 
 async def ws_to_gemini(ws: WebSocket, session):
@@ -56,9 +57,9 @@ async def ws_to_gemini(ws: WebSocket, session):
             msg = await ws.receive_text()
             data = json.loads(msg)
             if data.get("type") == "text":
-                await session.send(data["text"], end_of_turn=True)
+                await session.send(input=data["text"], end_of_turn=True)
             elif data.get("type") == "image":
-                await session.send({
+                await session.send(input={
                     "mime_type": data.get("mime_type", "image/jpeg"),
                     "data": data["data"],
                 })
@@ -71,40 +72,35 @@ async def ws_to_gemini(ws: WebSocket, session):
 async def gemini_to_ws(ws: WebSocket, session):
     try:
         async for response in session.receive():
-            # --- Text response ---
+            # Text response
             if hasattr(response, "text") and response.text:
                 await ws.send_text(json.dumps({
                     "type": "model_text",
                     "text": response.text,
                 }))
 
-            # --- Structured server_content (text chunks) ---
+            # server_content parts (text + audio)
             if hasattr(response, "server_content") and response.server_content:
                 model_turn = getattr(response.server_content, "model_turn", None)
                 if model_turn:
-                    parts = getattr(model_turn, "parts", []) or []
-                    for part in parts:
-                        # Text part
+                    for part in (getattr(model_turn, "parts", []) or []):
                         if hasattr(part, "text") and part.text:
                             await ws.send_text(json.dumps({
                                 "type": "model_text",
                                 "text": part.text,
                             }))
-                        # Audio part — send as base64 to frontend
                         if hasattr(part, "inline_data") and part.inline_data:
-                            import base64
                             audio_b64 = base64.b64encode(
                                 part.inline_data.data
                             ).decode("utf-8")
                             await ws.send_text(json.dumps({
                                 "type": "model_audio",
                                 "data": audio_b64,
-                                "mime_type": part.inline_data.mime_type,
+                                "mime_type": getattr(part.inline_data, "mime_type", "audio/pcm"),
                             }))
 
-            # --- Top-level audio data ---
+            # Top-level audio data
             if hasattr(response, "data") and response.data:
-                import base64
                 audio_b64 = base64.b64encode(response.data).decode("utf-8")
                 await ws.send_text(json.dumps({
                     "type": "model_audio",
@@ -145,7 +141,6 @@ async def health():
 
 @app.get("/models")
 async def list_models():
-    """List all Gemini models available to your API key."""
     if not client:
         return {"error": "GEMINI_API_KEY not configured"}
     try:
@@ -167,7 +162,6 @@ async def list_models():
 
 @app.get("/models/live")
 async def list_live_models():
-    """List only models that support the Live API (bidiGenerateContent)."""
     if not client:
         return {"error": "GEMINI_API_KEY not configured"}
     try:
@@ -206,18 +200,17 @@ async def live_endpoint(ws: WebSocket):
     try:
         async with client.aio.live.connect(
             model=GEMINI_MODEL,
-            config=CONFIG,
+            config=LIVE_CONFIG,
         ) as live_session:
-            print(f"[BACKEND] Connected to Gemini Live session ({GEMINI_MODEL})")
+            print(f"[BACKEND] Connected to Gemini Live ({GEMINI_MODEL})")
 
             await ws.send_text(json.dumps({
                 "type": "system",
-                "text": f"Connected to Hephaestus AI ({GEMINI_MODEL}). Camera feed active.",
+                "text": f"Connected to Hephaestus AI. Camera feed active.",
             }))
 
             send_task = asyncio.create_task(ws_to_gemini(ws, live_session))
             recv_task = asyncio.create_task(gemini_to_ws(ws, live_session))
-
             await asyncio.gather(send_task, recv_task, return_exceptions=True)
 
     except WebSocketDisconnect:

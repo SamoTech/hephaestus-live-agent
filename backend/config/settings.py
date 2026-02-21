@@ -33,21 +33,6 @@ FRAME_QUALITY = float(os.getenv("FRAME_QUALITY", 0.7))
 RATE_LIMIT_MESSAGES = int(os.getenv("RATE_LIMIT_MESSAGES", 60))  # per minute
 RATE_LIMIT_IMAGES = int(os.getenv("RATE_LIMIT_IMAGES", 20))  # per minute
 
-# Gemini Live API Configuration
-# native-audio models REQUIRE "AUDIO" in response_modalities
-GEMINI_CONFIG = {
-    "generation_config": {
-        "response_modalities": ["AUDIO", "TEXT"],
-        "speech_config": {
-            "voice_config": {
-                "prebuilt_voice_config": {
-                    "voice_name": "Puck"
-                }
-            }
-        },
-    },
-}
-
 # Application Info
 APP_NAME = "Hephaestus Live Backend"
 APP_VERSION = "1.0.0-alpha"
