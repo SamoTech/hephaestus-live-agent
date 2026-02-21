@@ -71,24 +71,47 @@ async def ws_to_gemini(ws: WebSocket, session):
 async def gemini_to_ws(ws: WebSocket, session):
     try:
         async for response in session.receive():
+            # --- Text response ---
             if hasattr(response, "text") and response.text:
                 await ws.send_text(json.dumps({
                     "type": "model_text",
                     "text": response.text,
                 }))
+
+            # --- Structured server_content (text chunks) ---
             if hasattr(response, "server_content") and response.server_content:
                 model_turn = getattr(response.server_content, "model_turn", None)
                 if model_turn:
-                    parts = getattr(model_turn, "parts", [])
-                    text_chunks = [
-                        part.text for part in parts
-                        if hasattr(part, "text") and part.text
-                    ]
-                    if text_chunks:
-                        await ws.send_text(json.dumps({
-                            "type": "model_text",
-                            "text": "".join(text_chunks),
-                        }))
+                    parts = getattr(model_turn, "parts", []) or []
+                    for part in parts:
+                        # Text part
+                        if hasattr(part, "text") and part.text:
+                            await ws.send_text(json.dumps({
+                                "type": "model_text",
+                                "text": part.text,
+                            }))
+                        # Audio part — send as base64 to frontend
+                        if hasattr(part, "inline_data") and part.inline_data:
+                            import base64
+                            audio_b64 = base64.b64encode(
+                                part.inline_data.data
+                            ).decode("utf-8")
+                            await ws.send_text(json.dumps({
+                                "type": "model_audio",
+                                "data": audio_b64,
+                                "mime_type": part.inline_data.mime_type,
+                            }))
+
+            # --- Top-level audio data ---
+            if hasattr(response, "data") and response.data:
+                import base64
+                audio_b64 = base64.b64encode(response.data).decode("utf-8")
+                await ws.send_text(json.dumps({
+                    "type": "model_audio",
+                    "data": audio_b64,
+                    "mime_type": "audio/pcm",
+                }))
+
     except WebSocketDisconnect:
         pass
     except Exception as e:
@@ -151,7 +174,6 @@ async def list_live_models():
         live_models = []
         for m in client.models.list():
             actions = getattr(m, "supported_actions", []) or []
-            # Convert actions to strings for safe comparison
             action_strs = [str(a).lower() for a in actions]
             if any("bidi" in a or "live" in a for a in action_strs):
                 live_models.append({
@@ -190,7 +212,7 @@ async def live_endpoint(ws: WebSocket):
 
             await ws.send_text(json.dumps({
                 "type": "system",
-                "text": "Connected to Hephaestus AI. Camera feed active.",
+                "text": f"Connected to Hephaestus AI ({GEMINI_MODEL}). Camera feed active.",
             }))
 
             send_task = asyncio.create_task(ws_to_gemini(ws, live_session))
