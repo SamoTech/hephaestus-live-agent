@@ -360,8 +360,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - **Issues**: [GitHub Issues](https://github.com/SamoTech/hephaestus-live-agent/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/SamoTech/hephaestus-live-agent/discussions)
-- **Email**: support@samotech.dev
-- **Twitter**: [@SamoTechDev](https://twitter.com/SamoTechDev)
+- **Email**: [samo.hossam@gmail.com](mailto:samo.hossam@gmail.com)
+- **Twitter/X**: [@OssamaHashim](https://x.com/OssamaHashim)
+- **LinkedIn**: [Ossama Hashim](https://www.linkedin.com/in/ossamahashim/)
 
 ---
 
