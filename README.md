@@ -178,6 +178,40 @@ Icons: Lucide-React
 
 
 
+🚀 What's Next? / ماذا بعد؟
+
+
+
+1\. Cloud Integration (Storage)
+
+
+
+We plan to add Firestore integration to allow users to save their project history, generated codes, and component snapshots across different devices.
+
+نخطط لإضافة التكامل مع قاعدة بيانات سحابية للسماح للمستخدمين بحفظ سجل مشاريعهم والأكواد المولدة عبر مختلف الأجهزة.
+
+
+
+2\. Multi-User Collaboration
+
+
+
+Enable multiple engineers to view the same "Live Stream" and collaborate on the same workspace remotely.
+
+تفعيل خاصية التعاون المتعدد للمهندسين لمتابعة "البث الحي" والعمل على نفس المشروع عن بُعد.
+
+
+
+3\. Advanced Hardware Simulation
+
+
+
+Integration with CAD software and circuit simulators (like LTspice) to test generated designs before physical assembly.
+
+التكامل مع برامج التصميم الهندسي (CAD) ومحاكيات الدوائر لاختبار التصاميم قبل التجميع الفعلي.
+
+
+
 🤝 Contributing
 
 
