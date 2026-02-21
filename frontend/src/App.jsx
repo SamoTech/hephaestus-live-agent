@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Play, Square, Cpu, Zap, Send, Camera, Volume2, VolumeX } from 'lucide-react';
 
 // --- PCM Audio Player ---
-// Gemini native-audio returns raw 16-bit PCM signed at 24kHz mono
 const createAudioPlayer = () => {
   let audioCtx = null;
   let nextStartTime = 0;
@@ -20,8 +19,6 @@ const createAudioPlayer = () => {
       const binary = atob(base64Data);
       const bytes = new Uint8Array(binary.length);
       for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-
-      // 16-bit little-endian PCM -> Float32
       const samples = Math.floor(bytes.length / 2);
       if (samples === 0) return;
       const float32 = new Float32Array(samples);
@@ -29,13 +26,11 @@ const createAudioPlayer = () => {
       for (let i = 0; i < samples; i++) {
         float32[i] = view.getInt16(i * 2, true) / 32768.0;
       }
-
       const buffer = ctx.createBuffer(1, samples, 24000);
       buffer.copyToChannel(float32, 0);
       const source = ctx.createBufferSource();
       source.buffer = buffer;
       source.connect(ctx.destination);
-
       const now = ctx.currentTime;
       const startAt = Math.max(now, nextStartTime);
       source.start(startAt);
@@ -45,11 +40,7 @@ const createAudioPlayer = () => {
     }
   };
 
-  const resume = () => {
-    const ctx = getCtx();
-    if (ctx.state === 'suspended') ctx.resume();
-  };
-
+  const resume = () => { try { getCtx().resume(); } catch(e) {} };
   const reset = () => { nextStartTime = 0; };
 
   return { playChunk, resume, reset };
@@ -63,7 +54,6 @@ const App = () => {
   const [isSending, setIsSending] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
-  const audioTimeoutRef = useRef(null);
 
   const videoRef = useRef(null);
   const wsRef = useRef(null);
@@ -72,15 +62,20 @@ const App = () => {
   const audioPlayerRef = useRef(null);
   const logsEndRef = useRef(null);
   const isMutedRef = useRef(false);
+  const audioTimeoutRef = useRef(null);
+  const shouldReconnectRef = useRef(true);
+  const reconnectTimerRef = useRef(null);
 
   useEffect(() => { isMutedRef.current = isMuted; }, [isMuted]);
 
-  // Init audio player once
   useEffect(() => {
     audioPlayerRef.current = createAudioPlayer();
+    return () => {
+      shouldReconnectRef.current = false;
+      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+    };
   }, []);
 
-  // Auto-scroll logs
   useEffect(() => {
     logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [logs]);
@@ -98,8 +93,13 @@ const App = () => {
   // WebSocket connection
   useEffect(() => {
     const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws/live';
+    shouldReconnectRef.current = true;
 
     const connectWebSocket = () => {
+      if (!shouldReconnectRef.current) return;
+      // Don't open a new socket if one is already open/connecting
+      if (wsRef.current && wsRef.current.readyState <= WebSocket.OPEN) return;
+
       try {
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
@@ -111,59 +111,69 @@ const App = () => {
         };
 
         ws.onmessage = (event) => {
-          const data = JSON.parse(event.data);
-
-          switch (data.type) {
-            case 'system':
-              addLog('system', data.text || data.message);
-              break;
-
-            case 'model_text':
-              // Real transcript text (thoughts already filtered on backend)
-              addLog('agent', data.text);
-              break;
-
-            case 'model_audio':
-              if (!isMutedRef.current && audioPlayerRef.current) {
-                audioPlayerRef.current.resume();
-                audioPlayerRef.current.playChunk(data.data);
-                markAudioPlaying();
-              }
-              break;
-
-            case 'audio_start':
-              if (!isMutedRef.current) {
-                markAudioPlaying();
-                addLog('agent', '🔊 Speaking...');
-              }
-              break;
-
-            case 'error':
-              addLog('error', data.text || data.message);
-              break;
-
-            default:
-              if (data.error) addLog('error', data.error);
+          try {
+            const data = JSON.parse(event.data);
+            switch (data.type) {
+              case 'system':
+                addLog('system', data.text || data.message);
+                break;
+              case 'model_text':
+                addLog('agent', data.text);
+                break;
+              case 'model_audio':
+                if (!isMutedRef.current && audioPlayerRef.current) {
+                  audioPlayerRef.current.resume();
+                  audioPlayerRef.current.playChunk(data.data);
+                  markAudioPlaying();
+                }
+                break;
+              case 'audio_start':
+                if (!isMutedRef.current) {
+                  markAudioPlaying();
+                  addLog('agent', '🔊 Speaking...');
+                }
+                break;
+              case 'error':
+                addLog('error', data.text || data.message);
+                break;
+              default:
+                if (data.error) addLog('error', data.error);
+            }
+          } catch (e) {
+            console.warn('[WS] parse error:', e);
           }
         };
 
-        ws.onclose = () => {
+        ws.onclose = (e) => {
           setIsConnected(false);
           audioPlayerRef.current?.reset();
-          addLog('system', 'Disconnected. Reconnecting in 3s...');
-          setTimeout(connectWebSocket, 3000);
+          if (shouldReconnectRef.current) {
+            addLog('system', 'Disconnected. Reconnecting in 3s...');
+            reconnectTimerRef.current = setTimeout(connectWebSocket, 3000);
+          }
         };
 
         ws.onerror = () => {
-          addLog('error', 'WebSocket error. Is the backend running?');
+          // onclose will fire after onerror — reconnect handled there
         };
       } catch (error) {
         addLog('error', `Failed to connect: ${error.message}`);
+        if (shouldReconnectRef.current) {
+          reconnectTimerRef.current = setTimeout(connectWebSocket, 3000);
+        }
       }
     };
 
     connectWebSocket();
-    return () => { if (wsRef.current) wsRef.current.close(); };
+
+    return () => {
+      shouldReconnectRef.current = false;
+      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+      if (wsRef.current) {
+        wsRef.current.onclose = null; // prevent reconnect on unmount
+        wsRef.current.close();
+      }
+    };
   }, []);
 
   const toggleLive = async () => {
@@ -198,7 +208,6 @@ const App = () => {
     return canvas.toDataURL('image/jpeg', 0.8);
   };
 
-  // Auto-send frame every 3s while live + connected
   useEffect(() => {
     if (!isLive || !isConnected) return;
     const interval = setInterval(() => {
@@ -219,7 +228,6 @@ const App = () => {
     setIsSending(true);
     addLog('user', inputText);
     try {
-      // Always send a fresh frame with text queries when camera is live
       if (isLive) {
         const frame = captureFrame();
         if (frame) {
@@ -250,7 +258,6 @@ const App = () => {
     <div className="bg-hephaestus-dark text-white min-h-screen p-10">
       <canvas ref={canvasRef} style={{ display: 'none' }} />
 
-      {/* Header */}
       <header className="flex justify-between items-center bg-hephaestus-panel p-5 rounded-3xl border border-gray-800 mb-8">
         <div className="flex items-center gap-4">
           <div className="bg-hephaestus-orange p-3 rounded-xl">
@@ -260,7 +267,7 @@ const App = () => {
             <h1 className="text-2xl font-bold">
               HEPHAESTUS <span className="text-hephaestus-orange">v1.0</span>
             </h1>
-            <p className="text-sm text-gray-400">
+            <p className="text-sm">
               {isConnected
                 ? <span className="text-green-400">● Connected</span>
                 : <span className="text-red-400">● Disconnected</span>}
@@ -290,9 +297,7 @@ const App = () => {
         </div>
       </header>
 
-      {/* Main Content */}
       <div className="flex gap-8">
-        {/* Camera Panel */}
         <div className="w-[450px]">
           <div className="bg-gray-900 aspect-square rounded-[40px] overflow-hidden border border-gray-800 flex items-center justify-center relative">
             <video
@@ -334,7 +339,6 @@ const App = () => {
           </button>
         </div>
 
-        {/* Workspace Logs */}
         <div className="flex-1 bg-hephaestus-panel rounded-[40px] p-8 border border-gray-800 flex flex-col">
           <h2 className="flex items-center gap-3 text-xl font-bold mb-6">
             <Zap color="#f97316" size={24} />

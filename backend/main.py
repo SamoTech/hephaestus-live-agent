@@ -3,6 +3,7 @@ import re
 import json
 import base64
 import asyncio
+import warnings
 from dotenv import load_dotenv
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -23,6 +24,10 @@ from config.settings import (
 from config.prompts import get_prompt
 
 load_dotenv()
+
+# Suppress noisy SDK warnings about non-data parts
+warnings.filterwarnings("ignore", message=".*non-data parts.*")
+warnings.filterwarnings("ignore", message=".*non-text parts.*")
 
 app = FastAPI(
     title=APP_NAME,
@@ -51,11 +56,10 @@ LIVE_CONFIG = types.LiveConnectConfig(
     system_instruction=get_prompt("default"),
 )
 
-# Thought pattern: Gemini returns thoughts as **Title Case Phrase** lines
+# Thought pattern: Gemini leaks thoughts as **Title Case** text parts
 _THOUGHT_RE = re.compile(r'^\*\*[A-Z][^*]+\*\*')
 
 def is_thought(text: str) -> bool:
-    """Return True if this text looks like an internal thought chunk."""
     return bool(_THOUGHT_RE.match(text.strip()))
 
 
@@ -74,65 +78,74 @@ async def ws_to_gemini(ws: WebSocket, session):
     except WebSocketDisconnect:
         pass
     except Exception as e:
-        print(f"[ws_to_gemini] Error: {e}")
+        if "10054" not in str(e) and "connection_lost" not in str(e).lower():
+            print(f"[ws_to_gemini] Error: {e}")
 
 
 async def gemini_to_ws(ws: WebSocket, session):
-    audio_chunks = 0
+    audio_started = False
     try:
         async for response in session.receive():
 
-            # --- server_content parts ---
-            if hasattr(response, "server_content") and response.server_content:
-                model_turn = getattr(response.server_content, "model_turn", None)
-                if model_turn:
-                    for part in (getattr(model_turn, "parts", []) or []):
-
-                        # 1. Skip by thought flag
-                        if getattr(part, "thought", False):
-                            continue
-
-                        # 2. Text part — skip if it looks like a thought
-                        if hasattr(part, "text") and part.text:
-                            if not is_thought(part.text):
-                                await ws.send_text(json.dumps({
-                                    "type": "model_text",
-                                    "text": part.text,
-                                }))
-                            else:
-                                print(f"[BACKEND] Filtered thought: {part.text[:60]}")
-
-                        # 3. Audio part
-                        if hasattr(part, "inline_data") and part.inline_data:
-                            audio_chunks += 1
-                            audio_b64 = base64.b64encode(
-                                part.inline_data.data
-                            ).decode("utf-8")
-                            await ws.send_text(json.dumps({
-                                "type": "model_audio",
-                                "data": audio_b64,
-                                "mime_type": getattr(part.inline_data, "mime_type", "audio/pcm;rate=24000"),
-                            }))
-
-            # --- Top-level raw PCM audio (native-audio model primary path) ---
-            if hasattr(response, "data") and response.data:
-                audio_chunks += 1
-                audio_b64 = base64.b64encode(response.data).decode("utf-8")
-                await ws.send_text(json.dumps({
-                    "type": "model_audio",
-                    "data": audio_b64,
-                    "mime_type": "audio/pcm;rate=24000",
-                }))
-                # Notify frontend on first audio chunk so it can show SPEAKING
-                if audio_chunks == 1:
+            # --- Primary path: top-level raw PCM audio ---
+            # native-audio model sends audio here, not in server_content
+            try:
+                raw = response.data
+                if raw:
+                    audio_b64 = base64.b64encode(raw).decode("utf-8")
                     await ws.send_text(json.dumps({
-                        "type": "audio_start",
+                        "type": "model_audio",
+                        "data": audio_b64,
+                        "mime_type": "audio/pcm;rate=24000",
                     }))
+                    if not audio_started:
+                        audio_started = True
+                        await ws.send_text(json.dumps({"type": "audio_start"}))
+            except Exception:
+                pass
+
+            # --- Secondary path: server_content parts ---
+            try:
+                sc = response.server_content
+                if sc:
+                    model_turn = getattr(sc, "model_turn", None)
+                    if model_turn:
+                        for part in (getattr(model_turn, "parts", []) or []):
+                            # Skip thought flag
+                            if getattr(part, "thought", False):
+                                continue
+                            # Text part (filter thought patterns)
+                            if hasattr(part, "text") and part.text:
+                                if not is_thought(part.text):
+                                    await ws.send_text(json.dumps({
+                                        "type": "model_text",
+                                        "text": part.text,
+                                    }))
+                            # Audio in inline_data
+                            if hasattr(part, "inline_data") and part.inline_data:
+                                try:
+                                    audio_b64 = base64.b64encode(
+                                        part.inline_data.data
+                                    ).decode("utf-8")
+                                    await ws.send_text(json.dumps({
+                                        "type": "model_audio",
+                                        "data": audio_b64,
+                                        "mime_type": getattr(
+                                            part.inline_data,
+                                            "mime_type",
+                                            "audio/pcm;rate=24000"
+                                        ),
+                                    }))
+                                except Exception:
+                                    pass
+            except Exception:
+                pass
 
     except WebSocketDisconnect:
         pass
     except Exception as e:
-        print(f"[gemini_to_ws] Error: {e}")
+        if "10054" not in str(e) and "connection_lost" not in str(e).lower():
+            print(f"[gemini_to_ws] Error: {e}")
 
 
 @app.get("/")
@@ -236,15 +249,20 @@ async def live_endpoint(ws: WebSocket):
 
     except WebSocketDisconnect:
         print("[BACKEND] Client disconnected")
+    except ConnectionResetError:
+        # Windows WinError 10054 — client closed connection abruptly, harmless
+        pass
     except Exception as e:
-        print(f"[BACKEND] Error: {e}")
-        try:
-            await ws.send_text(json.dumps({
-                "type": "error",
-                "text": f"Backend error: {str(e)}",
-            }))
-        except Exception:
-            pass
+        err = str(e)
+        if "10054" not in err:
+            print(f"[BACKEND] Error: {err}")
+            try:
+                await ws.send_text(json.dumps({
+                    "type": "error",
+                    "text": f"Backend error: {err}",
+                }))
+            except Exception:
+                pass
     finally:
         try:
             await ws.close()
