@@ -5,7 +5,8 @@ from typing import List
 
 # API Configuration
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash-exp")
+# gemini-2.0-flash-live-001 is the correct model for the Live (bidiGenerateContent) API
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash-live-001")
 
 # Server Configuration
 HOST = os.getenv("HOST", "0.0.0.0")
@@ -32,7 +33,7 @@ FRAME_QUALITY = float(os.getenv("FRAME_QUALITY", 0.7))
 RATE_LIMIT_MESSAGES = int(os.getenv("RATE_LIMIT_MESSAGES", 60))  # per minute
 RATE_LIMIT_IMAGES = int(os.getenv("RATE_LIMIT_IMAGES", 20))  # per minute
 
-# Gemini Configuration
+# Gemini Live API Configuration
 GEMINI_CONFIG = {
     "generation_config": {
         "response_modalities": ["TEXT"],  # Phase A: text only
