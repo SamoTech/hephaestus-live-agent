@@ -4,203 +4,192 @@ Thank you for your interest in contributing to Hephaestus! This document provide
 
 ## Code of Conduct
 
-Be respectful, inclusive, and constructive. We're building this together!
+By participating in this project, you agree to abide by our [Code of Conduct](CODE_OF_CONDUCT.md).
 
-## How Can I Contribute?
+## How to Contribute
 
 ### Reporting Bugs
 
-**Before submitting a bug report:**
-1. Check existing [Issues](https://github.com/SamoTech/hephaestus-live-agent/issues)
-2. Verify it's actually a bug and not a setup issue
-3. Try to reproduce it with the latest version
-
-**When submitting:**
-- Use a clear, descriptive title
-- Describe exact steps to reproduce
-- Include screenshots/videos if relevant
-- Mention your OS, browser, and versions
-- Include error messages from console
+1. Check if the bug has already been reported in [Issues](https://github.com/SamoTech/hephaestus-live-agent/issues)
+2. If not, create a new issue with:
+   - Clear title and description
+   - Steps to reproduce
+   - Expected vs actual behavior
+   - Screenshots if applicable
+   - Environment details (OS, browser, Python version)
 
 ### Suggesting Features
 
-- Search [Discussions](https://github.com/SamoTech/hephaestus-live-agent/discussions) first
-- Explain the problem your feature would solve
-- Describe how it would work
-- Consider edge cases and alternatives
+1. Check [Discussions](https://github.com/SamoTech/hephaestus-live-agent/discussions) for similar ideas
+2. Create a new discussion with:
+   - Clear use case
+   - Proposed solution
+   - Alternative approaches considered
+   - Mockups or examples if applicable
 
-### Code Contributions
+### Pull Requests
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/your-feature`
+3. Make your changes following our coding standards
+4. Write or update tests
+5. Update documentation
+6. Commit with conventional commits: `git commit -m "feat: add feature"`
+7. Push to your fork: `git push origin feature/your-feature`
+8. Open a Pull Request
 
 ## Development Setup
 
-1. **Fork the repository**
-2. **Clone your fork**
-   ```bash
-   git clone https://github.com/YOUR_USERNAME/hephaestus-live-agent.git
-   cd hephaestus-live-agent
-   ```
-3. **Create a branch**
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
-4. **Install dependencies** (see [SETUP.md](SETUP.md))
+### Prerequisites
+
+- Python 3.9+
+- Node.js 18+
+- Git
+
+### Local Development
+
+```bash
+# Clone your fork
+git clone https://github.com/YOUR_USERNAME/hephaestus-live-agent.git
+cd hephaestus-live-agent
+
+# Run setup script
+./scripts/setup.sh
+
+# Backend
+cd backend
+source venv/bin/activate
+python main.py
+
+# Frontend (new terminal)
+cd frontend
+npm run dev
+```
 
 ## Coding Standards
 
-### JavaScript/React
+### Python (Backend)
 
-- Use **functional components** with hooks
-- Follow **ESLint** rules (run `npm run lint`)
-- Use **meaningful variable names**
-- Keep components **small and focused**
-- Add **comments** for complex logic
+- Follow PEP 8
+- Use type hints
+- Maximum line length: 88 characters (Black default)
+- Docstrings for all public functions
+- Use `async/await` for I/O operations
 
-### Python
-
-- Follow **PEP 8** style guide
-- Use **type hints** where appropriate
-- Write **docstrings** for functions/classes
-- Keep functions **small and focused**
-- Use **async/await** for I/O operations
-
-### Commits
-
-Use conventional commit messages:
-
-```
-type(scope): subject
-
-[optional body]
-[optional footer]
+```python
+async def process_frame(frame: bytes) -> Dict[str, Any]:
+    """
+    Process a video frame and extract features.
+    
+    Args:
+        frame: Raw frame bytes
+    
+    Returns:
+        Dictionary containing frame analysis
+    """
+    # Implementation
+    pass
 ```
 
-**Types:**
+### JavaScript/React (Frontend)
+
+- Use ES6+ features
+- Functional components with hooks
+- PropTypes or TypeScript for type checking
+- Maximum line length: 100 characters
+- JSDoc comments for complex functions
+
+```javascript
+/**
+ * Capture a frame from video element
+ * @param {HTMLVideoElement} video - Video element
+ * @param {number} quality - JPEG quality (0-1)
+ * @returns {Promise<string>} Base64 encoded frame
+ */
+const captureFrame = async (video, quality = 0.7) => {
+  // Implementation
+};
+```
+
+## Commit Message Format
+
+We use [Conventional Commits](https://www.conventionalcommits.org/):
+
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+### Types
+
 - `feat`: New feature
 - `fix`: Bug fix
-- `docs`: Documentation only
-- `style`: Code style (formatting, no logic change)
-- `refactor`: Code restructuring
-- `test`: Adding tests
+- `docs`: Documentation changes
+- `style`: Code style changes (formatting)
+- `refactor`: Code refactoring
+- `test`: Adding or updating tests
 - `chore`: Maintenance tasks
+- `perf`: Performance improvements
 
-**Examples:**
-```bash
-feat(backend): add support for audio input
-fix(frontend): resolve camera permission issue on Safari
-docs(readme): update installation instructions
-```
-
-## Pull Request Process
-
-1. **Update your fork**
-   ```bash
-   git fetch upstream
-   git rebase upstream/main
-   ```
-
-2. **Make your changes**
-   - Write clean, documented code
-   - Test thoroughly
-   - Update documentation if needed
-
-3. **Commit your changes**
-   ```bash
-   git add .
-   git commit -m "feat: your feature description"
-   ```
-
-4. **Push to your fork**
-   ```bash
-   git push origin feature/your-feature-name
-   ```
-
-5. **Create Pull Request**
-   - Go to the original repository
-   - Click "New Pull Request"
-   - Select your branch
-   - Fill in the template:
-     - **Description**: What does this PR do?
-     - **Related Issue**: Link to issue if applicable
-     - **Testing**: How did you test it?
-     - **Screenshots**: If UI changes
-
-6. **Wait for review**
-   - Maintainers will review your code
-   - Address any requested changes
-   - Once approved, it will be merged!
-
-## Project Structure
+### Examples
 
 ```
-hephaestus-live-agent/
-├── src/                  # Frontend React code
-│   ├── App.jsx          # Main application component
-│   ├── main.jsx         # React entry point
-│   └── index.css        # Global styles
-├── main.py              # Backend FastAPI server
-├── package.json         # Node.js dependencies
-├── requirements.txt     # Python dependencies
-├── vite.config.js       # Vite configuration
-├── tailwind.config.js   # Tailwind CSS config
-└── .env.example         # Environment variables template
+feat(audio): add microphone streaming support
+
+Implement audio capture pipeline with PCM encoding.
+Includes resampling to 16kHz and WebSocket transmission.
+
+Closes #42
 ```
 
-## Areas to Contribute
+```
+fix(backend): resolve WebSocket connection timeout
 
-### High Priority
-- 🔴 **Testing**: Unit tests, integration tests
-- 🔴 **Documentation**: Tutorials, examples, API docs
-- 🔴 **Bug fixes**: Check [Issues](https://github.com/SamoTech/hephaestus-live-agent/issues)
+Increased connection timeout from 5s to 30s to handle
+slow network conditions.
 
-### Features to Build
-- 🟡 Voice input/output
-- 🟡 Session recording/replay
-- 🟡 Multi-language support
-- 🟡 Mobile app version
-- 🟡 Plugin system
-
-### Good First Issues
-
-Look for issues labeled `good-first-issue` - they're designed for newcomers!
+Fixes #56
+```
 
 ## Testing
 
-### Manual Testing
+### Backend Tests
 
-1. Test with camera on/off
-2. Test text-only interactions
-3. Test visual interactions (show objects, sketches)
-4. Test error scenarios (disconnect backend, deny camera)
-5. Test on different browsers
+```bash
+cd backend
+pytest tests/ -v
+```
 
-### Future: Automated Testing
+### Frontend Tests
 
-We plan to add:
-- Jest for frontend unit tests
-- Pytest for backend tests
-- Playwright for e2e tests
+```bash
+cd frontend
+npm test
+```
 
 ## Documentation
 
-Good documentation is as important as code:
+- Update README.md for user-facing changes
+- Add docstrings/comments for code
+- Update API.md for API changes
+- Add examples for new features
 
-- **README.md**: High-level overview
-- **SETUP.md**: Installation guide
-- **CONTRIBUTING.md**: This file
-- **Code comments**: Explain complex logic
-- **Inline docs**: JSDoc, Python docstrings
+## Review Process
 
-## Questions?
+1. Automated checks must pass (CI/CD)
+2. At least one maintainer review required
+3. All discussions must be resolved
+4. Branch must be up to date with main
 
-- **Technical questions**: [GitHub Discussions](https://github.com/SamoTech/hephaestus-live-agent/discussions)
-- **Chat**: Coming soon!
-- **Email**: [samo.hossam@gmail.com](mailto:samo.hossam@gmail.com)
+## Getting Help
 
-## Recognition
+- Join [Discussions](https://github.com/SamoTech/hephaestus-live-agent/discussions)
+- Email: samo.hossam@gmail.com
+- Twitter: [@OssamaHashim](https://x.com/OssamaHashim)
 
-All contributors will be:
-- ✨ Listed in README contributors section
-- 🎉 Mentioned in release notes
-- ❤️ Appreciated forever!
+## License
 
-Thank you for making Hephaestus better! 🚀
+By contributing, you agree that your contributions will be licensed under the MIT License.
