@@ -1,5 +1,48 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Play, Square, Cpu, Zap, Send, Camera } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { Play, Square, Cpu, Zap, Send, Camera, Volume2, VolumeX } from 'lucide-react';
+
+// --- PCM Audio Player ---
+// Gemini native-audio returns raw 16-bit PCM at 24kHz mono
+const createAudioPlayer = () => {
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
+  let nextStartTime = 0;
+
+  const playChunk = (base64Data) => {
+    try {
+      // Decode base64 -> ArrayBuffer
+      const binary = atob(base64Data);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+
+      // Convert 16-bit PCM -> Float32
+      const samples = bytes.length / 2;
+      const float32 = new Float32Array(samples);
+      const view = new DataView(bytes.buffer);
+      for (let i = 0; i < samples; i++) {
+        float32[i] = view.getInt16(i * 2, true) / 32768.0;
+      }
+
+      // Create and schedule audio buffer
+      const buffer = audioCtx.createBuffer(1, samples, 24000);
+      buffer.copyToChannel(float32, 0);
+      const source = audioCtx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(audioCtx.destination);
+
+      const now = audioCtx.currentTime;
+      const startAt = Math.max(now, nextStartTime);
+      source.start(startAt);
+      nextStartTime = startAt + buffer.duration;
+    } catch (e) {
+      console.warn('[Audio] playChunk error:', e);
+    }
+  };
+
+  const resume = () => { if (audioCtx.state === 'suspended') audioCtx.resume(); };
+  const reset = () => { nextStartTime = 0; };
+
+  return { playChunk, resume, reset };
+};
 
 const App = () => {
   const [isLive, setIsLive] = useState(false);
@@ -7,13 +50,31 @@ const App = () => {
   const [logs, setLogs] = useState([]);
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
 
   const videoRef = useRef(null);
   const wsRef = useRef(null);
   const streamRef = useRef(null);
   const canvasRef = useRef(null);
+  const audioPlayerRef = useRef(null);
+  const logsEndRef = useRef(null);
 
-  // WebSocket connection — FIX #1: correct endpoint /ws/live
+  // Init audio player once
+  useEffect(() => {
+    audioPlayerRef.current = createAudioPlayer();
+  }, []);
+
+  // Auto-scroll logs
+  useEffect(() => {
+    logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [logs]);
+
+  const addLog = useCallback((type, message) => {
+    setLogs(prev => [...prev, { type, message, timestamp: new Date().toLocaleTimeString() }]);
+  }, []);
+
+  // WebSocket connection
   useEffect(() => {
     const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws/live';
 
@@ -23,17 +84,25 @@ const App = () => {
 
         wsRef.current.onopen = () => {
           setIsConnected(true);
+          audioPlayerRef.current?.resume();
           addLog('system', 'Connected to Hephaestus AI Backend');
         };
 
         wsRef.current.onmessage = (event) => {
           const data = JSON.parse(event.data);
 
-          // FIX #2: handle 'model_text' type (what backend actually sends)
           if (data.type === 'system') {
             addLog('system', data.text || data.message);
           } else if (data.type === 'model_text') {
             addLog('agent', data.text);
+          } else if (data.type === 'model_audio') {
+            // Play PCM audio chunk
+            if (!isMuted && audioPlayerRef.current) {
+              audioPlayerRef.current.resume();
+              audioPlayerRef.current.playChunk(data.data);
+              setIsAudioPlaying(true);
+              setTimeout(() => setIsAudioPlaying(false), 1000);
+            }
           } else if (data.type === 'error' || data.error) {
             addLog('error', data.text || data.error);
           }
@@ -41,6 +110,7 @@ const App = () => {
 
         wsRef.current.onclose = () => {
           setIsConnected(false);
+          audioPlayerRef.current?.reset();
           addLog('system', 'Disconnected. Reconnecting in 3s...');
           setTimeout(connectWebSocket, 3000);
         };
@@ -54,15 +124,8 @@ const App = () => {
     };
 
     connectWebSocket();
-
-    return () => {
-      if (wsRef.current) wsRef.current.close();
-    };
+    return () => { if (wsRef.current) wsRef.current.close(); };
   }, []);
-
-  const addLog = (type, message) => {
-    setLogs(prev => [...prev, { type, message, timestamp: new Date().toLocaleTimeString() }]);
-  };
 
   const toggleLive = async () => {
     if (isLive) {
@@ -91,8 +154,7 @@ const App = () => {
     const video = videoRef.current;
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0);
+    canvas.getContext('2d').drawImage(video, 0, 0);
     return canvas.toDataURL('image/jpeg', 0.8);
   };
 
@@ -164,9 +226,25 @@ const App = () => {
             </p>
           </div>
         </div>
-        <button className="bg-white text-black px-6 py-3 rounded-xl font-bold hover:bg-gray-200 transition">
-          Export Session
-        </button>
+        <div className="flex items-center gap-3">
+          {/* Mute toggle */}
+          <button
+            onClick={() => setIsMuted(m => !m)}
+            className={`p-3 rounded-xl border transition ${
+              isMuted
+                ? 'border-red-600 bg-red-600/20 text-red-400'
+                : isAudioPlaying
+                  ? 'border-green-500 bg-green-500/20 text-green-400 animate-pulse'
+                  : 'border-gray-700 bg-gray-800 text-gray-400'
+            }`}
+            title={isMuted ? 'Unmute AI voice' : 'Mute AI voice'}
+          >
+            {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+          </button>
+          <button className="bg-white text-black px-6 py-3 rounded-xl font-bold hover:bg-gray-200 transition">
+            Export Session
+          </button>
+        </div>
       </header>
 
       {/* Main Content */}
@@ -191,6 +269,13 @@ const App = () => {
               <div className="absolute top-4 right-4 flex items-center gap-2 bg-black/60 px-3 py-1 rounded-full">
                 <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
                 <span className="text-xs text-green-400 font-bold">LIVE</span>
+              </div>
+            )}
+            {/* Audio playing indicator */}
+            {isAudioPlaying && !isMuted && (
+              <div className="absolute bottom-4 left-4 flex items-center gap-2 bg-black/60 px-3 py-1 rounded-full">
+                <Volume2 size={14} className="text-hephaestus-orange animate-pulse" />
+                <span className="text-xs text-hephaestus-orange font-bold">SPEAKING</span>
               </div>
             )}
           </div>
@@ -236,6 +321,7 @@ const App = () => {
                 </div>
               ))
             )}
+            <div ref={logsEndRef} />
           </div>
 
           <div className="flex gap-3">

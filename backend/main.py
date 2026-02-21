@@ -44,7 +44,7 @@ if GEMINI_API_KEY:
 else:
     print("[WARNING] GEMINI_API_KEY is not set. AI features will be disabled.")
 
-# --- Live session config using typed objects ---
+# --- Live session config ---
 LIVE_CONFIG = types.LiveConnectConfig(
     response_modalities=["AUDIO"],
     system_instruction=get_prompt("default"),
@@ -72,23 +72,23 @@ async def ws_to_gemini(ws: WebSocket, session):
 async def gemini_to_ws(ws: WebSocket, session):
     try:
         async for response in session.receive():
-            # Text response
-            if hasattr(response, "text") and response.text:
-                await ws.send_text(json.dumps({
-                    "type": "model_text",
-                    "text": response.text,
-                }))
-
-            # server_content parts (text + audio)
+            # --- server_content parts ---
             if hasattr(response, "server_content") and response.server_content:
                 model_turn = getattr(response.server_content, "model_turn", None)
                 if model_turn:
                     for part in (getattr(model_turn, "parts", []) or []):
+                        # Skip internal thought parts
+                        if getattr(part, "thought", False):
+                            continue
+
+                        # Text part
                         if hasattr(part, "text") and part.text:
                             await ws.send_text(json.dumps({
                                 "type": "model_text",
                                 "text": part.text,
                             }))
+
+                        # Audio part
                         if hasattr(part, "inline_data") and part.inline_data:
                             audio_b64 = base64.b64encode(
                                 part.inline_data.data
@@ -96,16 +96,16 @@ async def gemini_to_ws(ws: WebSocket, session):
                             await ws.send_text(json.dumps({
                                 "type": "model_audio",
                                 "data": audio_b64,
-                                "mime_type": getattr(part.inline_data, "mime_type", "audio/pcm"),
+                                "mime_type": getattr(part.inline_data, "mime_type", "audio/pcm;rate=24000"),
                             }))
 
-            # Top-level audio data
+            # --- Top-level audio (raw PCM from native-audio model) ---
             if hasattr(response, "data") and response.data:
                 audio_b64 = base64.b64encode(response.data).decode("utf-8")
                 await ws.send_text(json.dumps({
                     "type": "model_audio",
                     "data": audio_b64,
-                    "mime_type": "audio/pcm",
+                    "mime_type": "audio/pcm;rate=24000",
                 }))
 
     except WebSocketDisconnect:
@@ -206,7 +206,7 @@ async def live_endpoint(ws: WebSocket):
 
             await ws.send_text(json.dumps({
                 "type": "system",
-                "text": f"Connected to Hephaestus AI. Camera feed active.",
+                "text": "Connected to Hephaestus AI. Camera feed active.",
             }))
 
             send_task = asyncio.create_task(ws_to_gemini(ws, live_session))
@@ -240,4 +240,7 @@ if __name__ == "__main__":
         port=PORT,
         log_level=LOG_LEVEL.lower(),
         reload=False,
+        # Increase ping timeouts to prevent 1011 keepalive disconnects
+        ws_ping_interval=30,
+        ws_ping_timeout=60,
     )
