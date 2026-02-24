@@ -21,7 +21,7 @@ from config.settings import (
     APP_VERSION,
     APP_DESCRIPTION,
 )
-from config.prompts import get_prompt
+from config.prompts import get_prompt, list_skills
 
 load_dotenv()
 
@@ -88,7 +88,6 @@ async def gemini_to_ws(ws: WebSocket, session):
         async for response in session.receive():
 
             # --- Primary path: top-level raw PCM audio ---
-            # native-audio model sends audio here, not in server_content
             try:
                 raw = response.data
                 if raw:
@@ -111,17 +110,14 @@ async def gemini_to_ws(ws: WebSocket, session):
                     model_turn = getattr(sc, "model_turn", None)
                     if model_turn:
                         for part in (getattr(model_turn, "parts", []) or []):
-                            # Skip thought flag
                             if getattr(part, "thought", False):
                                 continue
-                            # Text part (filter thought patterns)
                             if hasattr(part, "text") and part.text:
                                 if not is_thought(part.text):
                                     await ws.send_text(json.dumps({
                                         "type": "model_text",
                                         "text": part.text,
                                     }))
-                            # Audio in inline_data
                             if hasattr(part, "inline_data") and part.inline_data:
                                 try:
                                     audio_b64 = base64.b64encode(
@@ -160,6 +156,7 @@ async def root():
             "websocket": "/ws/live",
             "models": "/models",
             "live_models": "/models/live",
+            "skills": "/skills",
         },
     }
 
@@ -170,6 +167,27 @@ async def health():
         "status": "ok",
         "gemini_ready": bool(client),
         "active_model": GEMINI_MODEL,
+    }
+
+
+@app.get("/skills")
+async def get_skills():
+    """List all available AI skill prompts."""
+    return {
+        "total": len(list_skills()),
+        "skills": list_skills(),
+    }
+
+
+@app.get("/skills/{skill_key}")
+async def get_skill_prompt(skill_key: str):
+    """Get the full system prompt for a specific skill."""
+    from config.prompts import PROMPTS
+    if skill_key not in PROMPTS:
+        return {"error": f"Skill '{skill_key}' not found.", "available": list(PROMPTS.keys())}
+    return {
+        "skill": skill_key,
+        "prompt": get_prompt(skill_key),
     }
 
 
@@ -231,16 +249,24 @@ async def live_endpoint(ws: WebSocket):
         await ws.close()
         return
 
+    # Allow dynamic skill selection via query param: /ws/live?skill=coder
+    skill = ws.query_params.get("skill", "default")
+    live_config = types.LiveConnectConfig(
+        response_modalities=["AUDIO"],
+        system_instruction=get_prompt(skill),
+    )
+    print(f"[BACKEND] Using skill: {skill}")
+
     try:
         async with client.aio.live.connect(
             model=GEMINI_MODEL,
-            config=LIVE_CONFIG,
+            config=live_config,
         ) as live_session:
             print(f"[BACKEND] Connected to Gemini Live ({GEMINI_MODEL})")
 
             await ws.send_text(json.dumps({
                 "type": "system",
-                "text": "Connected to Hephaestus AI. Camera feed active.",
+                "text": f"Connected to Hephaestus AI [{skill} mode]. Camera feed active.",
             }))
 
             send_task = asyncio.create_task(ws_to_gemini(ws, live_session))
@@ -250,7 +276,6 @@ async def live_endpoint(ws: WebSocket):
     except WebSocketDisconnect:
         print("[BACKEND] Client disconnected")
     except ConnectionResetError:
-        # Windows WinError 10054 — client closed connection abruptly, harmless
         pass
     except Exception as e:
         err = str(e)
